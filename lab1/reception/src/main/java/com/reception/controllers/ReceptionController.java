@@ -1,12 +1,12 @@
 package com.reception.controllers;
 
-import com.reception.models.PatientDto;
+import com.reception.models.requests.CreatePatientRequest;
 import com.reception.services.ReceptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @RestController("/reception")
@@ -14,9 +14,15 @@ public class ReceptionController {
 
     private final ReceptionService receptionService;
 
-    @PostMapping("/test")
-    public ResponseEntity<?> test(@RequestBody PatientDto patient) {
-        receptionService.test(patient);
+    @PostMapping("/patients")
+    public ResponseEntity<?> createPatient(@RequestBody CreatePatientRequest body) {
+        receptionService.createPatient(body);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/patients")
+    public ResponseEntity<?> deletePatient(@RequestParam(value = "patientId") UUID patientId) {
+        receptionService.deletePatient(patientId);
         return ResponseEntity.ok().build();
     }
 }

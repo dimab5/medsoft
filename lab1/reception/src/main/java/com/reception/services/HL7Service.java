@@ -2,14 +2,19 @@ package com.reception.services;
 
 import ca.uhn.hl7v2.HL7Exception;
 import ca.uhn.hl7v2.model.v25.message.ADT_A01;
+import ca.uhn.hl7v2.model.v25.message.ADT_A03;
 import ca.uhn.hl7v2.model.v25.segment.MSH;
 import ca.uhn.hl7v2.model.v25.segment.PID;
 import ca.uhn.hl7v2.parser.PipeParser;
+import com.reception.models.enums.AdministrativeSex;
+import com.reception.models.enums.HL7MessageType;
+import com.reception.models.enums.HL7TriggerEvent;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 @Service
 public class HL7Service {
@@ -18,19 +23,35 @@ public class HL7Service {
         try {
             ADT_A01 message = new ADT_A01();
 
-            setupMSH(message.getMSH());
+            setupMSH(message.getMSH(), HL7MessageType.ADMIT_DISCHARGE_TRANSFER, HL7TriggerEvent.ADMIT);
 
-            setupPID(message.getPID(), firstName, lastName, birthDate);
+            setupPID(message.getPID(), firstName, lastName, birthDate, null);
 
             PipeParser parser = new PipeParser();
             return parser.encode(message);
 
         } catch (HL7Exception e) {
-            throw new RuntimeException("Ошибка создания HL7 сообщения", e);
+            throw new RuntimeException("Error creating HL7 message", e);
         }
     }
 
-    private void setupMSH(MSH msh) throws HL7Exception {
+    public String deletePatientMessage(UUID patientId) {
+        try {
+            ADT_A03 message = new ADT_A03();
+
+            setupMSH(message.getMSH(), HL7MessageType.ADMIT_DISCHARGE_TRANSFER, HL7TriggerEvent.DISCHARGE);
+
+            setupPID(message.getPID(), null, null, null, patientId);
+
+            PipeParser parser = new PipeParser();
+            return parser.encode(message);
+
+        } catch (HL7Exception e) {
+            throw new RuntimeException("Error creating HL7 message for delete", e);
+        }
+    }
+
+    private void setupMSH(MSH msh, HL7MessageType type, HL7TriggerEvent event) throws HL7Exception {
         msh.getFieldSeparator().setValue("|");
         msh.getEncodingCharacters().setValue("^~\\&");
         msh.getSendingApplication().getNamespaceID().setValue("REGISTRATION_SERVICE");
@@ -42,14 +63,19 @@ public class HL7Service {
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         msh.getDateTimeOfMessage().getTime().setValue(currentTime);
 
-        msh.getMessageType().getMessageCode().setValue("ADT");
-        msh.getMessageType().getTriggerEvent().setValue("A01");
+        msh.getMessageType().getMessageCode().setValue(type.getCode());
+        msh.getMessageType().getTriggerEvent().setValue(event.getCode());
         msh.getMessageControlID().setValue(generateMessageId());
         msh.getProcessingID().getProcessingID().setValue("P");
         msh.getVersionID().getVersionID().setValue("2.5");
     }
 
-    private void setupPID(PID pid, String firstName, String lastName, LocalDate birthDate) throws HL7Exception {
+    private void setupPID(PID pid, String firstName, String lastName, LocalDate birthDate, UUID patientId) throws HL7Exception {
+        if (patientId != null) {
+            pid.getPatientIdentifierList(0).getIDNumber().setValue(patientId.toString());
+            pid.getPatientIdentifierList(0).getAssigningAuthority().getNamespaceID().setValue("HOSPITAL");
+        }
+
         if (lastName != null && !lastName.isBlank()) {
             pid.getPatientName(0).getFamilyName().getSurname().setValue(lastName);
         }
@@ -62,7 +88,7 @@ public class HL7Service {
             pid.getDateTimeOfBirth().getTime().setValue(birthDateStr);
         }
 
-        pid.getAdministrativeSex().setValue("U");
+        pid.getAdministrativeSex().setValue(AdministrativeSex.UNKNOWN.getCode());
     }
 
     private String generateMessageId() {
