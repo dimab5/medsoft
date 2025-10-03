@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -27,7 +28,7 @@ public class PatientEntity implements Patient {
 
     @Column(name = "birthdate", nullable = false)
     @Temporal(TemporalType.DATE)
-    private Date birthdate;
+    private LocalDate birthdate;
 
     public static PatientEntity create(CreatePatientRequest request) {
         PatientEntity patient = new PatientEntity();
