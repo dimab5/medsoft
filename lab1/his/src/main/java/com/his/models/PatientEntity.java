@@ -1,12 +1,12 @@
 package com.his.models;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.his.models.requests.CreatePatientRequest;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.UUID;
 
 @Entity
@@ -28,6 +28,7 @@ public class PatientEntity implements Patient {
 
     @Column(name = "birthdate", nullable = false)
     @Temporal(TemporalType.DATE)
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthdate;
 
     public static PatientEntity create(CreatePatientRequest request) {

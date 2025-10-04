@@ -1,5 +1,10 @@
 server:
   port: 8081
+  ssl:
+    key-store: classpath:keystore/his-keystore.jks
+    key-store-password: changeit
+    key-alias: his-websocket
+    key-password: changeit
 
 spring:
   application:

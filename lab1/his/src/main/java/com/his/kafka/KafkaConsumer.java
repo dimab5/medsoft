@@ -1,8 +1,10 @@
 package com.his.kafka;
 
+import com.his.models.Patient;
 import com.his.models.requests.DeletePatientRequest;
 import com.his.services.HL7ParserService;
 import com.his.services.PatientService;
+import com.his.websocket.PatientWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -17,6 +19,7 @@ public class KafkaConsumer {
 
     private final PatientService patientService;
     private final HL7ParserService hl7ParserService;
+    private final PatientWebSocketHandler webSocketHandler;
 
     @KafkaListener(
             topics = "reception.patient.create",
@@ -29,7 +32,8 @@ public class KafkaConsumer {
         var parsed = hl7ParserService.parseCreatePatientMessage(payload);
         log.info("Received message: {}", parsed);
 
-        patientService.create(parsed);
+        Patient patient = patientService.create(parsed);
+        webSocketHandler.broadcastPatient(patient);
 
         acknowledgment.acknowledge();
     }
