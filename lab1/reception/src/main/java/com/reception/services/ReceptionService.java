@@ -32,6 +32,6 @@ public class ReceptionService {
     public void deletePatient(UUID patientId) {
         String message = hl7Service.deletePatientMessage(patientId);
 
-        kafkaProducer.sendMessage(PATIENT_CREATE_TOPIC, message);
+        kafkaProducer.sendMessage(PATIENT_DELETE_TOPIC, message);
     }
 }

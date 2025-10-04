@@ -6,7 +6,6 @@ import ca.uhn.hl7v2.model.v25.message.ADT_A01;
 import ca.uhn.hl7v2.model.v25.message.ADT_A03;
 import ca.uhn.hl7v2.model.v25.segment.PID;
 import ca.uhn.hl7v2.parser.PipeParser;
-import com.his.models.enums.HL7MessageType;
 import com.his.models.requests.CreatePatientRequest;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +18,16 @@ public class HL7ParserService {
 
     private final PipeParser parser = new PipeParser();
 
+    public HL7ParserService() {
+        this.parser.getParserConfiguration().setAllowUnknownVersions(true);
+        this.parser.getParserConfiguration().setNonGreedyMode(true);
+    }
+
     public CreatePatientRequest parseCreatePatientMessage(String hl7Message) {
         try {
             Message message = parser.parse(hl7Message);
 
-            if (message instanceof ADT_A01) {
-                ADT_A01 adtMessage = (ADT_A01) message;
+            if (message instanceof ADT_A01 adtMessage) {
                 return extractPatientDataFromA01(adtMessage);
             } else {
                 throw new IllegalArgumentException("Invalid HL7 message type. Expected ADT^A01");
@@ -39,8 +42,7 @@ public class HL7ParserService {
         try {
             Message message = parser.parse(hl7Message);
 
-            if (message instanceof ADT_A03) {
-                ADT_A03 adtMessage = (ADT_A03) message;
+            if (message instanceof ADT_A03 adtMessage) {
                 return extractPatientIdFromA03(adtMessage);
             } else {
                 throw new IllegalArgumentException("Invalid HL7 message type. Expected ADT^A03");
@@ -107,24 +109,6 @@ public class HL7ParserService {
             return LocalDate.parse(birthDateStr, DateTimeFormatter.ofPattern("yyyyMMdd"));
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid birth date format: " + birthDateStr, e);
-        }
-    }
-
-    public HL7MessageType getMessageType(String hl7Message) {
-        try {
-            Message message = parser.parse(hl7Message);
-            String messageType = message.getName();
-
-            if (messageType.contains("ADT_A01")) {
-                return HL7MessageType.ADMIT_DISCHARGE_TRANSFER;
-            } else if (messageType.contains("ADT_A03")) {
-                return HL7MessageType.ADMIT_DISCHARGE_TRANSFER;
-            } else {
-                throw new IllegalArgumentException("Unknown message type: " + messageType);
-            }
-
-        } catch (HL7Exception e) {
-            throw new RuntimeException("Error determining HL7 message type", e);
         }
     }
 }

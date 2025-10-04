@@ -12,13 +12,13 @@ public class KafkaProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void sendMessage(String topic, String key, Object message) {
+    public void sendMessage(String topic, String key, String message) {
         kafkaTemplate.send(topic, key, message);
 
         log.info("Message %s send successfully".formatted(message));
     }
 
-    public void sendMessage(String topic, Object message) {
+    public void sendMessage(String topic, String message) {
         sendMessage(topic, null, message);
     }
 }
