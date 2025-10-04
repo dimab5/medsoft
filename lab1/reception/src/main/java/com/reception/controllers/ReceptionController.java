@@ -23,6 +23,6 @@ public class ReceptionController {
     @DeleteMapping("/patients")
     public ResponseEntity<?> deletePatient(@RequestParam(value = "patientId") UUID patientId) {
         receptionService.deletePatient(patientId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

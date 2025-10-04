@@ -1,5 +1,6 @@
 package com.his.kafka;
 
+import com.his.models.requests.DeletePatientRequest;
 import com.his.services.HL7ParserService;
 import com.his.services.PatientService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,9 @@ public class KafkaConsumer {
     ) {
         var parsed = hl7ParserService.parseDeletePatientMessage(payload);
         log.info("Received message: {}", parsed);
+
+        patientService.delete(new DeletePatientRequest(parsed));
+
         acknowledgment.acknowledge();
     }
 }
