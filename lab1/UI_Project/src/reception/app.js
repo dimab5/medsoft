@@ -12,7 +12,7 @@ export function initPage() {
         };
 
         try {
-            const res = await fetch('http://localhost:8082/reception/patients', {
+            const res = await fetch('https://localhost:8082/reception/patients', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -35,7 +35,7 @@ export function initPage() {
         const patientId = document.getElementById('patientId').value;
 
         try {
-            const res = await fetch(`http://localhost:8082/reception/patients?patientId=${patientId}`, {
+            const res = await fetch(`https://localhost:8082/reception/patients?patientId=${patientId}`, {
                 method: 'DELETE'
             });
 

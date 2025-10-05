@@ -1,6 +1,6 @@
 export function initPage() {
   const tbody = document.querySelector('#patients-table tbody');
-  const ws = new WebSocket('ws://localhost:8082/ws/patients');
+  const ws = new WebSocket('ws://localhost:8081/ws/patients');
 
   let patients = [];
 
