@@ -4,7 +4,6 @@ import com.his.exceptions.NotFoundException;
 import com.his.models.PatientDto;
 import com.his.models.PatientEntity;
 import com.his.models.requests.CreatePatientRequest;
-import com.his.models.requests.DeletePatientRequest;
 import com.his.repositories.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
