@@ -8,7 +8,7 @@ export function initPage() {
     tbody.innerHTML = '';
     patients.forEach(p => {
       const row = document.createElement('tr');
-      row.innerHTML = `<td>${p.firstName}</td><td>${p.lastName}</td><td>${p.birthDate}</td>`;
+      row.innerHTML = `<td>${p.name}</td><td>${p.surname}</td><td>${p.birthdate}</td>`;
       tbody.appendChild(row);
     });
   }
