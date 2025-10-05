@@ -2,25 +2,33 @@ export function initPage() {
   const form = document.getElementById('create-patient-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const body = {
-      firstName: document.getElementById('firstName').value,
-      lastName: document.getElementById('lastName').value,
-      birthDate: document.getElementById('birthDate').value
+      name: document.getElementById('name').value,
+      surname: document.getElementById('surname').value,
+      birthdate: document.getElementById('birthdate').value
     };
+
     try {
-      const res = await fetch('http://localhost:8081/reception/patients', {
+      const res = await fetch('/api/patients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(body)
       });
+
       if (!res.ok) {
-        const err = await res.json();
-        alert('Ошибка: ' + err.message);
+        const errorText = await res.text();
+        alert(`Ошибка при создании пациента: ${res.status} - ${errorText}`);
       } else {
+        const result = await res.json();
         alert('Пациент успешно создан');
+        console.log('Создан пациент:', result);
       }
     } catch (err) {
-      alert('Ошибка соединения: ' + err);
+      alert('Ошибка соединения: ' + err.message);
+      console.error('Ошибка:', err);
     }
   });
 }
