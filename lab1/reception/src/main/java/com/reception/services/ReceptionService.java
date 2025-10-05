@@ -1,5 +1,6 @@
 package com.reception.services;
 
+import com.reception.exceptions.GeneralException;
 import com.reception.kafka.KafkaProducer;
 import com.reception.models.requests.CreatePatientRequest;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +27,24 @@ public class ReceptionService {
                 request.birthdate()
         );
 
-        kafkaProducer.sendMessage(PATIENT_CREATE_TOPIC, message);
+        try {
+            kafkaProducer.sendMessage(PATIENT_CREATE_TOPIC, message);
+        }
+        catch (Exception e) {
+            log.error(e.getMessage());
+            throw new GeneralException(e.getMessage());
+        }
     }
 
     public void deletePatient(UUID patientId) {
         String message = hl7Service.deletePatientMessage(patientId);
 
-        kafkaProducer.sendMessage(PATIENT_DELETE_TOPIC, message);
+        try {
+            kafkaProducer.sendMessage(PATIENT_DELETE_TOPIC, message);
+        }
+        catch (Exception e) {
+            log.error(e.getMessage());
+            throw new GeneralException(e.getMessage());
+        }
     }
 }
