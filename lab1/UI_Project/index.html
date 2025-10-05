@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Hospital SPA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+    <a href="/reception" onclick="navigate(event)">Регистратура</a> |
+    <a href="/chief" onclick="navigate(event)">Главврач</a>
+</nav>
+
+<div id="app"></div>
+
+<script type="module">
+    import { initRouter } from './src/router.js';
+
+    window.navigate = (e) => {
+        e.preventDefault();
+        const href = e.target.getAttribute('href');
+        history.pushState({}, '', href);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
+    initRouter();
+</script>
+</body>
+</html>
