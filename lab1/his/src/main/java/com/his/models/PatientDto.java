@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Value;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Value
 public class PatientDto implements Patient {
+    UUID id;
     String name;
     String surname;
 
@@ -14,6 +16,6 @@ public class PatientDto implements Patient {
     LocalDate birthdate;
 
     public static PatientDto from(Patient patient) {
-        return new PatientDto(patient.getName(), patient.getSurname(), patient.getBirthdate());
+        return new PatientDto(patient.getId(), patient.getName(), patient.getSurname(), patient.getBirthdate());
     }
 }
