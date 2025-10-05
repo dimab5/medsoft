@@ -21,8 +21,8 @@ public class ReceptionController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/patients")
-    public ResponseEntity<?> deletePatient(@RequestParam(value = "patientId") UUID patientId) {
+    @DeleteMapping("/patients/{patientId}")
+    public ResponseEntity<?> deletePatient(@PathVariable UUID patientId) {
         receptionService.deletePatient(patientId);
         return ResponseEntity.noContent().build();
     }
