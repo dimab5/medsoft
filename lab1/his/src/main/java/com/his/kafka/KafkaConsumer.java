@@ -1,7 +1,6 @@
 package com.his.kafka;
 
 import com.his.models.Patient;
-import com.his.models.requests.DeletePatientRequest;
 import com.his.services.HL7ParserService;
 import com.his.services.PatientService;
 import com.his.websocket.PatientWebSocketHandler;
@@ -33,7 +32,7 @@ public class KafkaConsumer {
         log.info("Received message: {}", parsed);
 
         Patient patient = patientService.create(parsed);
-        webSocketHandler.broadcastPatient(patient);
+        webSocketHandler.broadcastCreatePatient(patient);
 
         acknowledgment.acknowledge();
     }
@@ -49,7 +48,10 @@ public class KafkaConsumer {
         var parsed = hl7ParserService.parseDeletePatientMessage(payload);
         log.info("Received message: {}", parsed);
 
-        patientService.delete(new DeletePatientRequest(parsed));
+        Patient patient = patientService.getById(parsed);
+        patientService.deleteById(parsed);
+
+        webSocketHandler.broadcastDeletePatient(patient);
 
         acknowledgment.acknowledge();
     }

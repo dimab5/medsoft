@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,11 +23,16 @@ public class PatientService {
         return PatientDto.from(patientRepository.save(patient));
     }
 
-    public void delete(DeletePatientRequest request) {
-        var patient = patientRepository.findById(request.patientId())
-                .orElseThrow(() -> NotFoundException.patientNotFound(request.patientId()));
+    public void deleteById(UUID patientId) {
+        var patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> NotFoundException.patientNotFound(patientId));
 
         patientRepository.delete(patient);
+    }
+
+    public PatientDto getById(UUID patientId) {
+        return PatientDto.from(patientRepository.findById(patientId)
+                .orElseThrow(() -> NotFoundException.patientNotFound(patientId)));
     }
 
     public List<PatientDto> getPatients() {
