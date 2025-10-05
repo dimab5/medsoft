@@ -31,4 +31,25 @@ export function initPage() {
       console.error('Ошибка:', err);
     }
   });
+
+  deleteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const patientId = document.getElementById('patientId').value;
+
+    try {
+      const res = await fetch(`https://localhost:8082/reception/patients?patientId=${patientId}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        alert('Ошибка: ' + err.message);
+      } else {
+        alert('Пациент удалён');
+        deleteForm.reset();
+      }
+    } catch (err) {
+      alert('Ошибка соединения: ' + err);
+    }
+  });
 }
