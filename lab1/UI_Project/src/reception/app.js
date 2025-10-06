@@ -37,7 +37,7 @@ export function initPage() {
     const patientId = document.getElementById('patientId').value;
 
     try {
-      const res = await fetch(`https://localhost:8082/reception/patients?patientId=${patientId}`, {
+      const res = await fetch(`/api/patients?patientId=${patientId}`, {
         method: 'DELETE'
       });
 
