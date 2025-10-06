@@ -28,8 +28,15 @@ public class KafkaConsumer {
             @Payload String payload,
             Acknowledgment acknowledgment
     ) {
+        String escapedPayload = payload
+                .replace("\\", "\\\\")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
+
+        log.info("Received message: {}", escapedPayload);
+
         var parsed = hl7ParserService.parseCreatePatientMessage(payload);
-        log.info("Received message: {}", parsed);
 
         Patient patient = patientService.create(parsed);
         webSocketHandler.broadcastCreatePatient(patient);
@@ -45,8 +52,15 @@ public class KafkaConsumer {
             @Payload String payload,
             Acknowledgment acknowledgment
     ) {
+        String escapedPayload = payload
+                .replace("\\", "\\\\")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
+
+        log.info("Received message: {}", escapedPayload);
+
         var parsed = hl7ParserService.parseDeletePatientMessage(payload);
-        log.info("Received message: {}", parsed);
 
         Patient patient = patientService.getById(parsed);
         patientService.deleteById(parsed);
