@@ -1,6 +1,7 @@
 server:
   port: 8081
   ssl:
+    enabled: true
     key-store: classpath:keystore/his-keystore.jks
     key-store-password: changeit
     key-alias: his-websocket

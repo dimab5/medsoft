@@ -19,7 +19,8 @@ export function initPage() {
   };
 
   ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+      console.log("WS message:", event.data);
+      const data = JSON.parse(event.data);
 
     if (Array.isArray(data)) {
       patients = data;

@@ -68,10 +68,14 @@ public class PatientWebSocketHandler extends TextWebSocketHandler {
     }
 
     public void broadcastCreatePatient(Patient patient) {
+        log.info("📢 Broadcasting CREATE for {}", patient.getId());
+
         broadcastPatient(PatientWebSocketDto.from(patient, PatientAction.CREATE));
     }
 
     public void broadcastDeletePatient(Patient patient) {
+        log.info("📢 Broadcasting DELETE for {}", patient.getId());
+
         broadcastPatient(PatientWebSocketDto.from(patient, PatientAction.DELETE));
     }
 

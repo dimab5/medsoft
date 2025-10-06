@@ -1,6 +1,8 @@
 export function initPage() {
   const form = document.getElementById('create-patient-form');
-  form.addEventListener('submit', async (e) => {
+  const deleteForm = document.getElementById('delete-patient-form');
+
+    form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const body = {
@@ -18,14 +20,14 @@ export function initPage() {
         body: JSON.stringify(body)
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        alert(`Ошибка при создании пациента: ${res.status} - ${errorText}`);
-      } else {
-        const result = await res.json();
-        alert('Пациент успешно создан');
-        console.log('Создан пациент:', result);
-      }
+        if (!res.ok) {
+            const text = await res.text();
+            alert(`Ошибка при создании пациента: ${res.status} - ${text}`);
+            return;
+        }
+
+        alert('✅ Пациент успешно создан');
+        form.reset();
     } catch (err) {
       alert('Ошибка соединения: ' + err.message);
       console.error('Ошибка:', err);
@@ -37,7 +39,7 @@ export function initPage() {
     const patientId = document.getElementById('patientId').value;
 
     try {
-      const res = await fetch(`/api/patients?patientId=${patientId}`, {
+        const res = await fetch(`/api/patients/${patientId}`, {
         method: 'DELETE'
       });
 
