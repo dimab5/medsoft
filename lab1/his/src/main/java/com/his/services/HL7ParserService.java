@@ -30,7 +30,7 @@ public class HL7ParserService {
             if (message instanceof ADT_A01 adtMessage) {
                 return extractPatientDataFromA01(adtMessage);
             } else {
-                throw new IllegalArgumentException("Invalid HL7 message type. Expected ADT^A01");
+                throw new IllegalArgumentException("Invalid HL7 message type: expected ADT^A01");
             }
 
         } catch (HL7Exception e) {
@@ -45,7 +45,7 @@ public class HL7ParserService {
             if (message instanceof ADT_A03 adtMessage) {
                 return extractPatientIdFromA03(adtMessage);
             } else {
-                throw new IllegalArgumentException("Invalid HL7 message type. Expected ADT^A03");
+                throw new IllegalArgumentException("Invalid HL7 message type: expected ADT^A03");
             }
 
         } catch (HL7Exception e) {
@@ -78,7 +78,7 @@ public class HL7ParserService {
         try {
             return UUID.fromString(patientIdStr);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid patient UUID format: " + patientIdStr, e);
+            throw new IllegalArgumentException("Invalid patient UUID format:  " + patientIdStr, e);
         }
     }
 

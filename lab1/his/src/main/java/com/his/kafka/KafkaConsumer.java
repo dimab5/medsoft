@@ -29,6 +29,7 @@ public class KafkaConsumer {
             Acknowledgment acknowledgment
     ) {
         var parsed = hl7ParserService.parseCreatePatientMessage(payload);
+
         log.info("Received message: {}", parsed);
 
         Patient patient = patientService.create(parsed);
@@ -46,11 +47,11 @@ public class KafkaConsumer {
             Acknowledgment acknowledgment
     ) {
         var parsed = hl7ParserService.parseDeletePatientMessage(payload);
+
         log.info("Received message: {}", parsed);
-
         Patient patient = patientService.getById(parsed);
-        patientService.deleteById(parsed);
 
+        patientService.deleteById(parsed);
         webSocketHandler.broadcastDeletePatient(patient);
 
         acknowledgment.acknowledge();
