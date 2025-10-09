@@ -78,7 +78,7 @@ public class HL7ParserService {
         try {
             return UUID.fromString(patientIdStr);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid patient UUID format:  " + patientIdStr, e);
+            throw new IllegalArgumentException("Invalid patient UUID format: " + patientIdStr, e);
         }
     }
 
