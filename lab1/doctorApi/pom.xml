@@ -11,8 +11,8 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.his</groupId>
-    <artifactId>his</artifactId>
+    <groupId>com.doctorApi</groupId>
+    <artifactId>doctorApi</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>

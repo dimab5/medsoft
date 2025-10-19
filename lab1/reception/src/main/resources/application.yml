@@ -4,9 +4,9 @@ server:
     context-path: /api
   ssl:
     key-store: classpath:keystore/reception-keystore.jks
-    key-store-password: changeit
+    key-store-password: password
     key-alias: reception-api
-    key-password: changeit
+    key-password: password
 
 spring:
   application:
