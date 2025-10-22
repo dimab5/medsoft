@@ -2,7 +2,7 @@ package com.doctorApi.models.enums;
 
 public enum VisitStatus {
 	REGISTERED,
-	IN_PROGRESS,
+	STARTED,
 	COMPLETED,
 	CANCELLED
 }

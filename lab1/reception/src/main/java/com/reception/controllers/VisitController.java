@@ -1,6 +1,6 @@
 package com.reception.controllers;
 
-import com.reception.models.requests.CreateVisitRequest;
+import com.reception.models.CreateVisitRequest;
 import com.reception.services.VisitService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

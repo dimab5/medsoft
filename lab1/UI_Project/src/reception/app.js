@@ -54,4 +54,29 @@ export function initPage() {
       alert('Ошибка соединения: ' + err);
     }
   });
+
+    const visitForm = document.getElementById('create-visit-form');
+
+    visitForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const patientId = document.getElementById('visitPatientId').value;
+
+        try {
+            const res = await fetch('/reception/visits', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ patientId })
+            });
+
+            if (res.ok) {
+                alert('✅ Визит зарегистрирован');
+                visitForm.reset();
+            } else {
+                alert('Ошибка при регистрации визита: ' + res.status);
+            }
+        } catch (err) {
+            alert('Ошибка соединения: ' + err.message);
+        }
+    });
+
 }

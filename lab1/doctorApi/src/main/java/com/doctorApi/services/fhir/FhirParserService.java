@@ -27,7 +27,7 @@ public class FhirParserService {
 			String patientIdStr = patientRef.replace("Patient/", "");
 			visit.setPatientId(UUID.fromString(patientIdStr));
 
-			visit.setStatus(VisitStatus.valueOf(root.path("status").asText("arrived").toUpperCase()));
+			visit.setStatus(VisitStatus.valueOf(root.path("status").asText("registered").toUpperCase()));
 
 			String startTimeStr = root.path("period").path("start").asText();
 			visit.setVisitTime(LocalDateTime.parse(startTimeStr));

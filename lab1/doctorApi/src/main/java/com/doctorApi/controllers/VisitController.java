@@ -16,7 +16,7 @@ public class VisitController {
 
 	@PostMapping("/{id}/start")
 	public void startVisit(@PathVariable UUID id) {
-		visitService.updateVisitStatus(id, VisitStatus.IN_PROGRESS);
+		visitService.updateVisitStatus(id, VisitStatus.STARTED);
 	}
 
 	@PostMapping("/{id}/finish")

@@ -1,6 +1,5 @@
 package com.reception.services;
 
-import com.reception.kafka.VisitKafkaProducer;
 import com.reception.models.CreateVisitRequest;
 import com.reception.services.fhir.FhirVisitService;
 import lombok.RequiredArgsConstructor;

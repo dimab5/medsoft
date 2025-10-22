@@ -17,7 +17,7 @@ public class FhirVisitService {
 		try {
 			Map<String, Object> fhir = new HashMap<>();
 			fhir.put("resourceType", "Encounter");
-			fhir.put("status", "arrived");
+			fhir.put("status", "registered");
 
 			Map<String, Object> subject = new HashMap<>();
 			subject.put("reference", "Patient/" + request.patientId());
