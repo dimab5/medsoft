@@ -1,9 +1,10 @@
 package com.doctorApi.services;
 
+import com.doctorApi.kafka.KafkaProducer;
 import com.doctorApi.models.VisitDto;
 import com.doctorApi.models.enums.VisitStatus;
 import com.doctorApi.services.fhir.FhirParserService;
-import com.doctorApi.webSocket.DoctorWebSocketHandler;
+import com.doctorApi.websocket.DoctorWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

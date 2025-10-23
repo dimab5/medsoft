@@ -69,4 +69,15 @@ public class KafkaConsumer {
 
         acknowledgment.acknowledge();
     }
+
+    @KafkaListener(
+            topics = "doctor.visit.update",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void handleVisitStatusUpdated(
+            @Payload String payload,
+            Acknowledgment acknowledgment
+    ) {
+
+    }
 }

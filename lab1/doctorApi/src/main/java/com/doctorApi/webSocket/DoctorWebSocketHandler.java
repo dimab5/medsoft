@@ -1,4 +1,4 @@
-package com.doctorApi.webSocket;
+package com.doctorApi.websocket;
 
 import com.doctorApi.models.VisitDto;
 import com.fasterxml.jackson.databind.ObjectMapper;

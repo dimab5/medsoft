@@ -13,7 +13,7 @@ public class VisitController {
 
 	private final VisitService visitService;
 
-	@PostMapping
+	@PostMapping()
 	public ResponseEntity<Void> registerVisit(@RequestBody CreateVisitRequest body) {
 		visitService.registerVisit(body);
 		return ResponseEntity.ok().build();
