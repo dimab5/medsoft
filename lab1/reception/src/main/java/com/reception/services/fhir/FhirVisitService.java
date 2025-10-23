@@ -1,35 +1,33 @@
 package com.reception.services.fhir;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.reception.models.CreateVisitRequest;
+import ca.uhn.fhir.context.FhirContext;
+import com.reception.models.VisitRequest;
+import org.hl7.fhir.r4.model.Encounter;
+import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Reference;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class FhirVisitService {
 
-	private final ObjectMapper mapper = new ObjectMapper();
+	private final FhirContext fhirContext = FhirContext.forR4();
 
-	public String createVisitMessage(CreateVisitRequest request) {
-		try {
-			Map<String, Object> fhir = new HashMap<>();
-			fhir.put("resourceType", "Encounter");
-			fhir.put("status", "registered");
+	public String createVisitMessage(VisitRequest request) {
+		Encounter encounter = new Encounter();
+		encounter.setId(UUID.randomUUID().toString());
+		encounter.setStatus(Encounter.EncounterStatus.PLANNED);
+		encounter.setSubject(new Reference("Patient/" + request.patientId()));
 
-			Map<String, Object> subject = new HashMap<>();
-			subject.put("reference", "Patient/" + request.patientId());
-			fhir.put("subject", subject);
+		Period period = new Period();
+		period.setStart(Date.from(request.visitTime().atZone(ZoneId.systemDefault()).toInstant()));
+		encounter.setPeriod(period);
 
-			Map<String, Object> period = new HashMap<>();
-			period.put("start", request.visitTime().toString());
-			fhir.put("period", period);
-
-			return mapper.writeValueAsString(fhir);
-		} catch (JsonProcessingException e) {
-			throw new RuntimeException("Failed to serialize FHIR message", e);
-		}
+		return fhirContext.newJsonParser()
+				.setPrettyPrint(false)
+				.encodeResourceToString(encounter);
 	}
 }

@@ -4,7 +4,7 @@ import com.his.models.PatientEntity;
 import com.his.models.Visit;
 import com.his.models.VisitDto;
 import com.his.models.enums.VisitStatus;
-import com.his.models.requests.CreateVisitRequest;
+import com.his.models.requests.VisitRequest;
 import com.his.repositories.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,14 +15,13 @@ public class VisitMapper {
 
 	private final PatientRepository patientRepository;
 
-	public Visit toEntity(CreateVisitRequest dto) {
+	public Visit toEntity(VisitRequest dto) {
 		PatientEntity patient = patientRepository.findById(dto.patientId())
 				.orElseThrow(() -> new IllegalArgumentException("Patient not found: " + dto.patientId()));
 
 		return Visit.builder()
 				.patient(patient)
 				.visitTime(dto.visitTime())
-				.status(VisitStatus.REGISTERED)
 				.build();
 	}
 

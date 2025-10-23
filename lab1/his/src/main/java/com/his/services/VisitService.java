@@ -3,7 +3,7 @@ package com.his.services;
 import com.his.models.Visit;
 import com.his.models.VisitDto;
 import com.his.models.enums.VisitStatus;
-import com.his.models.requests.CreateVisitRequest;
+import com.his.models.requests.VisitRequest;
 import com.his.repositories.VisitRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,8 +18,9 @@ public class VisitService {
 	private final VisitRepository visitRepository;
 	private final VisitMapper visitMapper;
 
-	public VisitDto createVisit(CreateVisitRequest dto) {
+	public VisitDto createVisit(VisitRequest dto) {
 		Visit visit = visitMapper.toEntity(dto);
+		visit.setStatus(VisitStatus.PLANNED);
 		visit = visitRepository.save(visit);
 		return visitMapper.toDto(visit);
 	}

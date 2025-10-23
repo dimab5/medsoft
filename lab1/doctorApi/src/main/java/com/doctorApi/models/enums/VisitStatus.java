@@ -1,7 +1,7 @@
 package com.doctorApi.models.enums;
 
 public enum VisitStatus {
-	REGISTERED,
+	PLANNED,
 	STARTED,
 	COMPLETED,
 	CANCELLED

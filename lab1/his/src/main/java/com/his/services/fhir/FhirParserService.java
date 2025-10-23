@@ -1,47 +1,67 @@
 package com.his.services.fhir;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.his.models.PatientEntity;
+import ca.uhn.fhir.context.FhirContext;
+import org.hl7.fhir.r4.model.Encounter;
+import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Reference;
+import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
+
 import com.his.models.Visit;
 import com.his.models.enums.VisitStatus;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import com.his.models.PatientEntity;
+import com.his.repositories.PatientRepository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class FhirParserService {
 
-	private final ObjectMapper objectMapper = new ObjectMapper();
+	private final FhirContext fhirContext = FhirContext.forR4();
+	private final PatientRepository patientRepository;
 
-	public Visit parseVisit(String fhirJson) {
-		try {
-			JsonNode root = objectMapper.readTree(fhirJson);
+	public Visit fromFhir(String fhirJson) {
+		Encounter encounter = (Encounter) fhirContext.newJsonParser()
+				.parseResource(fhirJson);
 
-			String patientRef = root.path("subject").path("reference").asText();
-			String patientIdStr = patientRef.replace("Patient/", "");
-			UUID patientId = UUID.fromString(patientIdStr);
+		UUID id = UUID.fromString(encounter.getIdElement().getIdPart());
+		String patientRef = encounter.getSubject().getReference();
+		UUID patientId = UUID.fromString(patientRef.replace("Patient/", ""));
 
-			String statusStr = root.path("status").asText("registered");
-			VisitStatus status = VisitStatus.valueOf(statusStr.toUpperCase());
+		PatientEntity patient = patientRepository.findById(patientId)
+				.orElseThrow(() -> new IllegalArgumentException("Patient not found: " + patientId));
 
-			String startTimeStr = root.path("period").path("start").asText();
-			LocalDateTime visitTime = LocalDateTime.parse(startTimeStr);
+		VisitStatus status = VisitStatus.valueOf(encounter.getStatus().name());
 
-			PatientEntity patient = new PatientEntity();
-			patient.setId(patientId);
+		Date start = encounter.getPeriod().getStart();
+		LocalDateTime visitTime = (start != null)
+				? LocalDateTime.ofInstant(start.toInstant(), ZoneId.systemDefault())
+				: LocalDateTime.now();
 
-			return Visit.builder()
-					.patient(patient)
-					.visitTime(visitTime)
-					.status(status)
-					.build();
+		return Visit.builder()
+				.id(id)
+				.patient(patient)
+				.visitTime(visitTime)
+				.status(status)
+				.build();
+	}
 
-		} catch (Exception e) {
-			throw new RuntimeException("Error parsing FHIR message: " + e.getMessage(), e);
-		}
+	public String toFhir(Visit visit) {
+		Encounter encounter = new Encounter();
+		encounter.setId(visit.getId().toString());
+		encounter.setStatus(Encounter.EncounterStatus.valueOf(visit.getStatus().name()));
+		encounter.setSubject(new Reference("Patient/" + visit.getPatient().getId()));
+
+		Period period = new Period();
+		period.setStart(Date.from(visit.getVisitTime().atZone(ZoneId.systemDefault()).toInstant()));
+		encounter.setPeriod(period);
+
+		return fhirContext.newJsonParser()
+				.setPrettyPrint(false)
+				.encodeResourceToString(encounter);
 	}
 }

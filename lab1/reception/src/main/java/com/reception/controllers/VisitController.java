@@ -1,6 +1,6 @@
 package com.reception.controllers;
 
-import com.reception.models.CreateVisitRequest;
+import com.reception.models.VisitRequest;
 import com.reception.services.VisitService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,7 @@ public class VisitController {
 	private final VisitService visitService;
 
 	@PostMapping()
-	public ResponseEntity<Void> registerVisit(@RequestBody CreateVisitRequest body) {
+	public ResponseEntity<Void> registerVisit(@RequestBody VisitRequest body) {
 		visitService.registerVisit(body);
 		return ResponseEntity.ok().build();
 	}
