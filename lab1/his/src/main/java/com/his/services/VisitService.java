@@ -1,7 +1,9 @@
 package com.his.services;
 
+import com.his.models.Patient;
 import com.his.models.Visit;
 import com.his.models.VisitDto;
+import com.his.models.VisitDtoWithPatient;
 import com.his.models.enums.VisitStatus;
 import com.his.models.requests.VisitRequest;
 import com.his.repositories.VisitRepository;
@@ -17,6 +19,7 @@ public class VisitService {
 
 	private final VisitRepository visitRepository;
 	private final VisitMapper visitMapper;
+	private final PatientService patientService;
 
 	public VisitDto createVisit(VisitRequest dto) {
 		Visit visit = visitMapper.toEntity(dto);
@@ -25,10 +28,14 @@ public class VisitService {
 		return visitMapper.toDto(visit);
 	}
 
-	public List<VisitDto> getAllVisits() {
+	public List<VisitDtoWithPatient> getAllVisits() {
 		return visitRepository.findAll()
 				.stream()
-				.map(visitMapper::toDto)
+				.map(visit -> {
+					VisitDtoWithPatient visitAns = VisitDtoWithPatient.from(visit);
+					Patient patient = patientService.getById(visit.getPatient().getId());
+					return visitAns.withName(patient.getName()).withSurname(patient.getSurname());
+				})
 				.toList();
 	}
 

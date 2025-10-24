@@ -8,12 +8,11 @@ import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/reception/visits")
 public class VisitController {
 
 	private final VisitService visitService;
 
-	@PostMapping()
+	@PostMapping("/reception/visits")
 	public ResponseEntity<Void> registerVisit(@RequestBody VisitRequest body) {
 		visitService.registerVisit(body);
 		return ResponseEntity.ok().build();

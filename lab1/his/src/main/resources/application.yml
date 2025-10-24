@@ -42,10 +42,13 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
       auto-offset-reset: earliest
-      group-id: user-service-group
+      group-id: his-group
     listener:
       ack-mode: record
       missing-topics-fatal: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
   flyway:
     enabled: true

@@ -1,8 +1,13 @@
 package com.his.kafka;
 
 import com.his.models.Patient;
+import com.his.models.Visit;
+import com.his.models.VisitDto;
+import com.his.models.requests.VisitRequest;
 import com.his.services.HL7ParserService;
 import com.his.services.PatientService;
+import com.his.services.VisitService;
+import com.his.services.fhir.FhirParserService;
 import com.his.websocket.PatientWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +24,9 @@ public class KafkaConsumer {
     private final PatientService patientService;
     private final HL7ParserService hl7ParserService;
     private final PatientWebSocketHandler webSocketHandler;
+    private final FhirParserService fhirParserService;
+    private final VisitService visitService;
+    private final KafkaProducer kafkaProducer;
 
     @KafkaListener(
             topics = "reception.patient.create",
@@ -78,6 +86,26 @@ public class KafkaConsumer {
             @Payload String payload,
             Acknowledgment acknowledgment
     ) {
+        VisitDto visit = fhirParserService.fromFhir(payload);
+        VisitDto updatedVisit = visitService.updateStatus(visit.id(), visit.status());
+        kafkaProducer.sendMessage("reception.visit.create.with.patient", fhirParserService.toFhir(updatedVisit));
+        acknowledgment.acknowledge();
+    }
 
+    @KafkaListener(
+            topics = "reception.visit.create",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void handleVisitCreated(
+            @Payload String payload,
+            Acknowledgment acknowledgment
+    ) {
+        log.info("Fhir received message: {}", payload);
+        VisitDto visit = fhirParserService.fromFhir(payload);
+
+        visitService.createVisit(new VisitRequest(visit.patientId(), visit.visitTime()));
+        kafkaProducer.sendMessage("reception.visit.create.with.patient", fhirParserService.toFhir(visit));
+
+        acknowledgment.acknowledge();
     }
 }

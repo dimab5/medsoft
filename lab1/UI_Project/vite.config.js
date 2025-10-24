@@ -9,8 +9,13 @@ export default defineConfig({
       cert: fs.readFileSync('cert.pem')
     },
     proxy: {
-      '/api': {
+      '/api/reception': {
         target: 'https://localhost:8082',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/visits': {
+        target: 'https://localhost:8081',
         changeOrigin: true,
         secure: false
       }

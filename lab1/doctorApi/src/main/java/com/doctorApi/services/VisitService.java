@@ -2,6 +2,7 @@ package com.doctorApi.services;
 
 import com.doctorApi.kafka.KafkaProducer;
 import com.doctorApi.models.VisitDto;
+import com.doctorApi.models.VisitDtoWithPatient;
 import com.doctorApi.models.enums.VisitStatus;
 import com.doctorApi.services.fhir.FhirParserService;
 import com.doctorApi.websocket.DoctorWebSocketHandler;
@@ -32,9 +33,9 @@ public class VisitService {
 	}
 
 	public void handleVisitFromHis(String fhirJson) {
-		VisitDto visit = fhirParserService.fromFhirJson(fhirJson);
+		VisitDtoWithPatient visit = fhirParserService.fromFhirJson(fhirJson);
 		webSocketHandler.broadcastVisitUpdate(visit);
-		log.info("Broadcasted visit {} to UI", visit.getId());
+		log.info("Broadcasted visit {} to UI", visit.id());
 	}
 }
 

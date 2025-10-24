@@ -8,18 +8,17 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/visits")
 @RequiredArgsConstructor
 public class VisitController {
 
 	private final VisitService visitService;
 
-	@PostMapping("/{id}/start")
+	@PostMapping("/api/visits/{id}/start")
 	public void startVisit(@PathVariable UUID id) {
 		visitService.updateVisitStatus(id, VisitStatus.STARTED);
 	}
 
-	@PostMapping("/{id}/finish")
+	@PostMapping("/api/visits/{id}/finish")
 	public void finishVisit(@PathVariable UUID id) {
 		visitService.updateVisitStatus(id, VisitStatus.COMPLETED);
 	}

@@ -1,7 +1,10 @@
 package com.doctorApi.websocket;
 
 import com.doctorApi.models.VisitDto;
+import com.doctorApi.models.VisitDtoWithPatient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @RequiredArgsConstructor
 public class DoctorWebSocketHandler extends TextWebSocketHandler {
 
-	private final ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule()).disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 	private final Set<WebSocketSession> sessions = new CopyOnWriteArraySet<>();
 
 	@Override
@@ -32,7 +35,7 @@ public class DoctorWebSocketHandler extends TextWebSocketHandler {
 		log.info("Doctor UI disconnected: {}", session.getId());
 	}
 
-	public void broadcastVisitUpdate(VisitDto visit) {
+	public void broadcastVisitUpdate(VisitDtoWithPatient visit) {
 		try {
 			String message = mapper.writeValueAsString(visit);
 			for (WebSocketSession session : sessions) {

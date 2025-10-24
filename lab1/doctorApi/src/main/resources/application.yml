@@ -1,5 +1,11 @@
 server:
   port: 8083
+#  ssl:
+#    enabled: true
+#    key-store: classpath:keystore/doctor-keystore.jks
+#    key-store-password: password
+#    key-alias: doctor-api
+#    key-password: password
 
 spring:
   autoconfigure:
@@ -17,7 +23,7 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
       auto-offset-reset: earliest
-      group-id: user-service-group
+      group-id: doctor-group
     listener:
       ack-mode: record
       missing-topics-fatal: false

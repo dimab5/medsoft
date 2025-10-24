@@ -1,0 +1,27 @@
+package com.his.models;
+
+import com.his.models.enums.VisitStatus;
+import lombok.With;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public record VisitDtoWithPatient(
+        UUID id,
+        UUID patientId,
+        LocalDateTime visitTime,
+        VisitStatus status,
+        @With String name,
+        @With String surname
+) {
+    public static VisitDtoWithPatient from(Visit visit) {
+        return new VisitDtoWithPatient(
+                visit.getId(),
+                visit.getPatient().getId(),
+                visit.getVisitTime(),
+                visit.getStatus(),
+                null,
+                null
+        );
+    }
+}

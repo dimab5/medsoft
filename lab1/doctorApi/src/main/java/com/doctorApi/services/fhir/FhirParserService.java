@@ -1,9 +1,8 @@
 package com.doctorApi.services.fhir;
 
 import ca.uhn.fhir.context.FhirContext;
-import org.hl7.fhir.r4.model.Encounter;
-import org.hl7.fhir.r4.model.Period;
-import org.hl7.fhir.r4.model.Reference;
+import com.doctorApi.models.VisitDtoWithPatient;
+import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Service;
 
 import com.doctorApi.models.VisitDto;
@@ -19,29 +18,89 @@ public class FhirParserService {
 
 	private final FhirContext fhirContext = FhirContext.forR4();
 
-	public VisitDto fromFhirJson(String fhirJson) {
-		Encounter encounter = (Encounter) fhirContext.newJsonParser()
-				.parseResource(fhirJson);
+	private Encounter.EncounterStatus toFhirStatus(VisitStatus status) {
+		switch (status) {
+			case PLANNED:
+				return Encounter.EncounterStatus.PLANNED;
+			case STARTED:
+				return Encounter.EncounterStatus.INPROGRESS;
+			case COMPLETED:
+				return Encounter.EncounterStatus.FINISHED;
+			case CANCELLED:
+				return Encounter.EncounterStatus.CANCELLED;
+			default:
+				return Encounter.EncounterStatus.UNKNOWN;
+		}
+	}
 
-		VisitDto dto = new VisitDto();
-		dto.setId(UUID.fromString(encounter.getIdElement().getIdPart()));
-		dto.setPatientId(UUID.fromString(
-				encounter.getSubject().getReference().replace("Patient/", "")));
+	private VisitStatus fromFhirStatus(Encounter.EncounterStatus fhirStatus) {
+		switch (fhirStatus) {
+			case PLANNED:
+				return VisitStatus.PLANNED;
+			case INPROGRESS:
+				return VisitStatus.STARTED;
+			case FINISHED:
+				return VisitStatus.COMPLETED;
+			case CANCELLED:
+				return VisitStatus.CANCELLED;
+			default:
+				return VisitStatus.PLANNED;
+		}
+	}
 
-		dto.setStatus(VisitStatus.valueOf(encounter.getStatus().name()));
+	public VisitDtoWithPatient fromFhirJson(String fhirJson) {
+		Bundle bundle = (Bundle) fhirContext.newJsonParser().parseResource(fhirJson);
 
-		Date start = encounter.getPeriod().getStart();
-		if (start != null) {
-			dto.setVisitTime(LocalDateTime.ofInstant(start.toInstant(), ZoneId.systemDefault()));
+		Encounter encounter = null;
+		Patient patient = null;
+
+		for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
+			if (entry.getResource() instanceof Encounter enc) {
+				encounter = enc;
+			} else if (entry.getResource() instanceof Patient pat) {
+				patient = pat;
+			}
 		}
 
-		return dto;
+		if (encounter == null) {
+			throw new IllegalArgumentException("No Encounter found in FHIR message");
+		}
+		if (patient == null) {
+			throw new IllegalArgumentException("No Patient found in FHIR message");
+		}
+
+		UUID id = UUID.fromString(encounter.getIdElement().getIdPart());
+		String patientRef = encounter.getSubject().getReference();
+		UUID patientId = UUID.fromString(patientRef.replace("Patient/", ""));
+
+		VisitStatus status = fromFhirStatus(encounter.getStatus());
+
+		Date start = encounter.getPeriod().getStart();
+		LocalDateTime visitTime = (start != null)
+				? LocalDateTime.ofInstant(start.toInstant(), ZoneId.systemDefault())
+				: LocalDateTime.now();
+
+		String name = "";
+		String surname = "";
+
+		if (!patient.getName().isEmpty()) {
+			HumanName humanName = patient.getName().get(0);
+			if (!humanName.getGiven().isEmpty()) {
+				name = humanName.getGiven().get(0).getValueNotNull();
+			}
+			if (humanName.hasFamily()) {
+				surname = humanName.getFamily();
+			}
+		}
+
+		return new VisitDtoWithPatient(id, patientId, visitTime, status, name, surname);
 	}
 
 	public String toFhirJson(VisitDto dto) {
 		Encounter encounter = new Encounter();
 		encounter.setId(dto.getId().toString());
-		encounter.setStatus(Encounter.EncounterStatus.valueOf(dto.getStatus().name()));
+
+		encounter.setStatus(toFhirStatus(dto.getStatus()));
 
 		encounter.setSubject(new Reference("Patient/" + dto.getPatientId()));
 

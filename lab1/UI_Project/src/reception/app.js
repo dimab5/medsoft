@@ -12,7 +12,7 @@ export function initPage() {
     };
 
     try {
-      const res = await fetch('/api/patients', {
+      const res = await fetch('/api/reception/patients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -39,7 +39,7 @@ export function initPage() {
     const patientId = document.getElementById('patientId').value;
 
     try {
-        const res = await fetch(`/api/patients/${patientId}`, {
+        const res = await fetch(`/api/reception/patients/${patientId}`, {
         method: 'DELETE'
       });
 
@@ -56,16 +56,20 @@ export function initPage() {
   });
 
     const visitForm = document.getElementById('create-visit-form');
+    const visitTime = new Date().toISOString();
 
     visitForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const patientId = document.getElementById('visitPatientId').value;
 
         try {
-            const res = await fetch('/reception/visits', {
+            const res = await fetch('api/reception/visits', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ patientId })
+                body: JSON.stringify({
+                    patientId: patientId,
+                    visitTime: visitTime
+                })
             });
 
             if (res.ok) {

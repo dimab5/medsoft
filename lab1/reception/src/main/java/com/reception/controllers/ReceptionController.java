@@ -9,18 +9,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-@RestController("/reception")
+@RestController
 public class ReceptionController {
 
     private final ReceptionService receptionService;
 
-    @PostMapping("/patients")
+    @PostMapping("/reception/patients")
     public ResponseEntity<?> createPatient(@RequestBody CreatePatientRequest body) {
         receptionService.createPatient(body);
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/patients/{patientId}")
+    @DeleteMapping("/reception/patients/{patientId}")
     public ResponseEntity<?> deletePatient(@PathVariable UUID patientId) {
         receptionService.deletePatient(patientId);
         return ResponseEntity.noContent().build();
