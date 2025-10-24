@@ -87,17 +87,9 @@ export function initPage() {
         const visitId = document.getElementById('visitId').value.trim();
         if (!visitId) return alert('Введите UUID визита');
 
-        try {
-            const res = await fetch(`http://localhost:8083/api/visits/${visitId}/${action}`, { method: 'POST' });
-            if (res.ok) {
-                alert(`✅ Визит ${action === 'start' ? 'начат' : 'завершён'}`);
-                await loadInitialVisits();
-            } else {
-                alert(`Ошибка: ${res.status}`);
-            }
-        } catch (err) {
-            alert('Ошибка соединения: ' + err.message);
-        }
+        alert(`✅ Визит ${action === 'start' ? 'начат' : 'завершён'}`);
+        await fetch(`http://localhost:8083/api/visits/${visitId}/${action}`, { method: 'POST' });
+        await loadInitialVisits();
     }
 
     initialize();

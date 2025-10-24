@@ -1,5 +1,5 @@
 package com.his.models.enums;
 
 public enum PatientAction {
-    CREATE, DELETE
+    CREATE, DELETE, UPDATE
 }

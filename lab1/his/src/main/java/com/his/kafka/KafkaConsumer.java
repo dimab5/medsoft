@@ -89,6 +89,8 @@ public class KafkaConsumer {
         VisitDto visit = fhirParserService.fromFhir(payload);
         VisitDto updatedVisit = visitService.updateStatus(visit.id(), visit.status());
         kafkaProducer.sendMessage("reception.visit.create.with.patient", fhirParserService.toFhir(updatedVisit));
+        Patient patient = patientService.getById(updatedVisit.patientId());
+        webSocketHandler.broadcastUpdateVisitStatus(patient);
         acknowledgment.acknowledge();
     }
 
@@ -103,8 +105,8 @@ public class KafkaConsumer {
         log.info("Fhir received message: {}", payload);
         VisitDto visit = fhirParserService.fromFhir(payload);
 
-        visitService.createVisit(new VisitRequest(visit.patientId(), visit.visitTime()));
-        kafkaProducer.sendMessage("reception.visit.create.with.patient", fhirParserService.toFhir(visit));
+        VisitDto newVisit = visitService.createVisit(new VisitRequest(visit.patientId(), visit.visitTime()));
+        kafkaProducer.sendMessage("reception.visit.create.with.patient", fhirParserService.toFhir(newVisit));
 
         acknowledgment.acknowledge();
     }

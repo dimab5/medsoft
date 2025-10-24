@@ -5,8 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.his.models.Patient;
+import com.his.models.PatientWithStatusDto;
+import com.his.models.Visit;
 import com.his.models.enums.PatientAction;
 import com.his.models.websockets.PatientWebSocketDto;
+import com.his.repositories.VisitRepository;
 import com.his.services.PatientService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,9 +32,11 @@ public class PatientWebSocketHandler extends TextWebSocketHandler {
 
     private final ObjectMapper objectMapper;
     private final PatientService patientService;
+    private final VisitRepository visitRepository;
 
-    public PatientWebSocketHandler(PatientService patientService) {
+    public PatientWebSocketHandler(PatientService patientService, VisitRepository visitRepository) {
         this.patientService = patientService;
+        this.visitRepository = visitRepository;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -70,13 +75,23 @@ public class PatientWebSocketHandler extends TextWebSocketHandler {
     public void broadcastCreatePatient(Patient patient) {
         log.info("Broadcasting CREATE for {}", patient.getId());
 
-        broadcastPatient(PatientWebSocketDto.from(patient, PatientAction.CREATE));
+        Visit visit = visitRepository.findFirstByPatientIdOrderByVisitTimeDesc(patient.getId()).orElse(null);
+
+        broadcastPatient(PatientWebSocketDto.from(patient, PatientAction.CREATE, visit != null ? visit.getStatus() : null));
     }
 
     public void broadcastDeletePatient(Patient patient) {
         log.info("Broadcasting DELETE for {}", patient.getId());
 
-        broadcastPatient(PatientWebSocketDto.from(patient, PatientAction.DELETE));
+        broadcastPatient(PatientWebSocketDto.from(patient, PatientAction.DELETE, null));
+    }
+
+    public void broadcastUpdateVisitStatus(Patient patient) {
+        log.info("Broadcasting UPDATE for {}", patient.getId());
+
+        Visit visit = visitRepository.findFirstByPatientIdOrderByVisitTimeDesc(patient.getId()).orElse(null);
+
+        broadcastPatient(PatientWebSocketDto.from(patient, PatientAction.UPDATE, visit != null ? visit.getStatus() : null));
     }
 
     private void broadcastMessage(String message) {
@@ -94,7 +109,7 @@ public class PatientWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void broadcastPatient(Patient patient) {
+    private void broadcastPatient(PatientWebSocketDto patient) {
         try {
             String jsonMessage = objectMapper.writeValueAsString(patient);
             broadcastMessage(jsonMessage);

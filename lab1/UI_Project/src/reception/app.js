@@ -56,10 +56,10 @@ export function initPage() {
   });
 
     const visitForm = document.getElementById('create-visit-form');
-    const visitTime = new Date().toISOString();
 
     visitForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const visitTime = new Date().toISOString();
         const patientId = document.getElementById('visitPatientId').value;
 
         try {
