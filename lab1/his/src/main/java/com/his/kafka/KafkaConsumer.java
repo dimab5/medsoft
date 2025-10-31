@@ -86,6 +86,7 @@ public class KafkaConsumer {
             @Payload String payload,
             Acknowledgment acknowledgment
     ) {
+        log.info("Fhir received message: {}", payload);
         VisitDto visit = fhirParserService.fromFhir(payload);
         VisitDto updatedVisit = visitService.updateStatus(visit.id(), visit.status());
         kafkaProducer.sendMessage("reception.visit.create.with.patient", fhirParserService.toFhir(updatedVisit));

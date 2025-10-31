@@ -23,3 +23,4 @@ spring:
         spring.json.type.mapping: >-
           patientDto:com.reception.models.PatientDto
           
+#keytool -genkeypair -alias localhost -keyalg RSA -keysize 2048 -validity 3650 -keystore localhost.jks -storetype JKS -dname "CN=localhost, OU=Development, O=MyCompany, L=Moscow, ST=Moscow, C=RU" -storepass changeit -keypass changeit
