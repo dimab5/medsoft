@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedSoftMeet - Видеоконференция</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🎥 MedSoftMeet</h1>
+        <p class="subtitle">Видеоконференция на WebRTC</p>
+    </header>
+
+    <!-- Экран подключения -->
+    <div id="connectionScreen" class="connection-screen card">
+        <h2>Подключение к конференции</h2>
+        <div class="form-group">
+            <label for="userId">Ваш ID:</label>
+            <input type="text" id="userId" class="form-control" placeholder="Введите ваш ID" value="user1">
+        </div>
+        <div class="form-group">
+            <label for="remoteUserId">ID собеседника:</label>
+            <input type="text" id="remoteUserId" class="form-control" placeholder="Введите ID собеседника" value="user2">
+        </div>
+        <button onclick="connect()" class="btn btn-primary btn-block">Подключиться</button>
+    </div>
+
+    <!-- Экран конференции (изначально скрыт) -->
+    <div id="conferenceScreen" class="conference-screen" style="display: none;">
+        <!-- Видео панель -->
+        <div class="video-panel">
+            <div class="video-grid">
+                <!-- Локальное видео -->
+                <div class="video-wrapper local">
+                    <video id="localVideo" autoplay playsinline muted></video>
+                    <div class="video-overlay">
+                        <span class="user-badge">Я (ID: <span id="localId"></span>)</span>
+                        <div class="media-indicators">
+                            <span id="videoIndicator" class="indicator" title="Видео">📹</span>
+                            <span id="audioIndicator" class="indicator" title="Микрофон">🎤</span>
+                            <span id="screenIndicator" class="indicator" style="display: none;" title="Демонстрация экрана">🖥️</span>
+                        </div>
+                    </div>
+                    <div class="video-controls">
+                        <button id="toggleVideoBtn" onclick="toggleVideo()" class="btn-control" title="Вкл/Выкл видео">
+                            <span class="icon">📹</span>
+                            <span class="text">Выкл видео</span>
+                        </button>
+                        <button id="toggleAudioBtn" onclick="toggleAudio()" class="btn-control" title="Вкл/Выкл микрофон">
+                            <span class="icon">🎤</span>
+                            <span class="text">Выкл микрофон</span>
+                        </button>
+                        <button id="screenShareBtn" onclick="toggleScreenShare()" class="btn-control" title="Демонстрация экрана">
+                            <span class="icon">🖥️</span>
+                            <span class="text">Демонстрация</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Удаленное видео -->
+                <div class="video-wrapper remote">
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="video-overlay">
+                        <span class="user-badge">Собеседник (ID: <span id="remoteId"></span>)</span>
+                        <div class="remote-status" id="remoteStatus"></div>
+                    </div>
+                    <div class="remote-controls">
+                        <label for="volumeControl">🔊 Громкость:</label>
+                        <input type="range" id="volumeControl" min="0" max="1" step="0.1" value="1" onchange="setVolume(this.value)">
+                        <span id="volumeValue">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Чат и дополнительная информация -->
+        <div class="bottom-panel">
+            <div class="chat-panel card">
+                <div class="chat-header">
+                    <h3>💬 Чат</h3>
+                    <span class="badge" id="connectionStatus">Подключение...</span>
+                </div>
+                <div class="messages" id="messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Введите сообщение..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                    <button onclick="sendMessage()" class="btn btn-primary">Отправить</button>
+                </div>
+            </div>
+
+            <div class="action-panel">
+                <button onclick="endCall()" class="btn btn-danger btn-end">
+                    <span class="icon">📞</span>
+                    Завершить конференцию
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notificationArea" class="notification-area"></div>
+</div>
+
+<script src="/js/script.js"></script>
+</body>
+</html>
