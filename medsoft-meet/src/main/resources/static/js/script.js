@@ -199,16 +199,19 @@ function connectToSignalingServer() {
 function onConnected() {
 	document.getElementById('connectionStatus').textContent = '🟡 Ожидание собеседника...';
 
+	createPeerConnection();
+
 	stompClient.subscribe('/topic/signal/' + userId, (msg) => {
 		handleSignal(JSON.parse(msg.body));
 	});
 
 	stompClient.subscribe('/topic/join', (msg) => {
 		const signal = JSON.parse(msg.body);
-		if (signal.from === remoteUserId) {
-			showNotification('Собеседник подключился!', 'success');
-			document.getElementById('remoteStatus').textContent = '🟡 Подключается...';
-			if (userId < remoteUserId) makeCall();
+		if (signal.from !== remoteUserId) return;
+		showNotification('Собеседник подключился!', 'success');
+		document.getElementById('remoteStatus').textContent = '🟡 Подключается...';
+		if (userId < remoteUserId) {
+			makeCall();
 		}
 	});
 
@@ -226,17 +229,7 @@ function onConnected() {
 		type: 'join', from: userId, to: 'all', data: null
 	}));
 
-	createPeerConnection();
-
-	if (userId < remoteUserId) {
-		setTimeout(() => {
-			if (peerConnection &&
-				peerConnection.signalingState === 'stable' &&
-				!remoteDescriptionSet) {
-				makeCall();
-			}
-		}, 1500);
-	}
+	sendSignal('ready', {});
 }
 
 function createPeerConnection() {
@@ -253,6 +246,13 @@ function createPeerConnection() {
 
 	peerConnection.oniceconnectionstatechange = () => {
 		console.log('ICE state:', peerConnection.iceConnectionState);
+	};
+
+	peerConnection.onnegotiationneeded = async () => {
+		if (peerConnection.signalingState !== 'stable') return;
+		if (userId < remoteUserId) {
+			await makeCall();
+		}
 	};
 
 	peerConnection.ontrack = ({ streams }) => {
@@ -346,6 +346,12 @@ async function handleSignal(signal) {
 				showNotification('Собеседник завершил демонстрацию экрана', 'info');
 				document.getElementById('remoteStatus').textContent = '🟢 В сети';
 				break;
+			case 'ready': {
+				if (userId < remoteUserId) {
+					makeCall();
+				}
+				break;
+			}
 		}
 	} catch (err) {
 		console.error('Ошибка обработки сигнала', signal.type, err);
