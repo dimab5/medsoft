@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="613e3a40-ee94-48f4-aa40-9305da9e8f7a" name="Changes" comment="fix build config">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/medsoftmeet/config/WebSocketConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/medsoftmeet/config/WebSocketConfig.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -147,7 +147,7 @@
       <workItem from="1773765335839" duration="45000" />
       <workItem from="1773771367107" duration="643000" />
       <workItem from="1773772030325" duration="1047000" />
-      <workItem from="1773862929074" duration="1003000" />
+      <workItem from="1773862929074" duration="1917000" />
     </task>
     <task id="LOCAL-00001" summary="add lab">
       <option name="closed" value="true" />
@@ -173,7 +173,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773863555080</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="fix build config">
+      <option name="closed" value="true" />
+      <created>1773864172517</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1773864172517</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

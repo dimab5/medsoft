@@ -13,7 +13,6 @@
 </head>
 <body>
 
-<!-- ═══ ЭКРАН ВХОДА ══════════════════════════════════════════════════════════ -->
 <div id="connectionScreen" class="screen screen--login">
     <div class="login-card">
         <div class="login-logo">
@@ -35,7 +34,6 @@
             <input type="text" id="remoteUserId" class="input" placeholder="например: patient_1" value="user2" autocomplete="off">
         </div>
 
-        <!-- Выбор устройств на экране входа -->
         <div class="devices-section">
             <button class="devices-toggle" onclick="toggleLoginDevices(this)" type="button">
                 <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
@@ -66,7 +64,6 @@
     </div>
 </div>
 
-<!-- ═══ ЭКРАН КОНФЕРЕНЦИИ ════════════════════════════════════════════════════ -->
 <div id="conferenceScreen" class="screen screen--conf" style="display:none">
 
     <header class="conf-header">
@@ -86,7 +83,6 @@
 
     <main class="conf-main">
         <section class="video-section">
-            <!-- Локальное видео -->
             <div class="video-tile video-tile--local">
                 <video id="localVideo" autoplay playsinline muted></video>
                 <div class="tile-overlay tile-overlay--top">
@@ -107,12 +103,10 @@
                     <button id="screenShareBtn" onclick="toggleScreenShare()" class="ctrl-btn" title="Демонстрация">
                         <span class="ctrl-icon">🖥️</span><span class="ctrl-label">Экран</span>
                     </button>
-                    <!-- Кнопка настроек устройств во время звонка -->
                     <div class="settings-wrap">
                         <button id="settingsBtn" onclick="toggleSettings()" class="ctrl-btn" title="Устройства">
                             <span class="ctrl-icon">⚙️</span><span class="ctrl-label">Устройства</span>
                         </button>
-                        <!-- Панель выбора устройств -->
                         <div id="settingsPanel" class="settings-panel">
                             <div class="settings-panel__header">Устройства</div>
                             <div class="settings-panel__field">
@@ -128,7 +122,6 @@
                 </div>
             </div>
 
-            <!-- Удалённое видео -->
             <div class="video-tile video-tile--remote">
                 <video id="remoteVideo" autoplay playsinline></video>
                 <div class="tile-overlay tile-overlay--top">
@@ -146,7 +139,6 @@
             </div>
         </section>
 
-        <!-- Чат -->
         <aside class="chat-sidebar">
             <div class="chat-top">
                 <h2 class="chat-heading">Сообщения</h2>

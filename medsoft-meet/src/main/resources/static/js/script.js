@@ -1,4 +1,3 @@
-// ─── Глобальное состояние ────────────────────────────────────────────────────
 let localStream;
 let peerConnection;
 let stompClient;
@@ -15,7 +14,6 @@ let connectionNotified   = false;
 let selectedVideoDeviceId = null;
 let selectedAudioDeviceId = null;
 
-// ─── ICE / STUN конфигурация ─────────────────────────────────────────────────
 const RTC_CONFIG = {
 	iceServers: [
 		{ urls: 'stun:stun.l.google.com:19302' },
@@ -25,7 +23,6 @@ const RTC_CONFIG = {
 	iceCandidatePoolSize: 10
 };
 
-// ─── Уведомления ─────────────────────────────────────────────────────────────
 function showNotification(message, type = 'info') {
 	const area = document.getElementById('notificationArea');
 	const el   = document.createElement('div');
@@ -35,7 +32,6 @@ function showNotification(message, type = 'info') {
 	setTimeout(() => el.remove(), 3500);
 }
 
-// ─── Перечисление устройств ───────────────────────────────────────────────────
 async function populateDevices(selectVideo, selectAudio) {
 	try {
 		const devices = await navigator.mediaDevices.enumerateDevices();
@@ -53,7 +49,6 @@ async function populateDevices(selectVideo, selectAudio) {
 			if (d.kind === 'audioinput') selectAudio.appendChild(opt);
 		});
 
-		// Восстанавливаем выбор
 		if (currentVideoId) selectVideo.value = currentVideoId;
 		if (currentAudioId) selectAudio.value = currentAudioId;
 	} catch (err) {
@@ -63,7 +58,6 @@ async function populateDevices(selectVideo, selectAudio) {
 
 async function populateLoginDevices() {
 	try {
-		// Запрашиваем разрешение, чтобы браузер показал метки
 		const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 		tempStream.getTracks().forEach(t => t.stop());
 
@@ -81,11 +75,9 @@ async function populateLoginDevices() {
 	}
 }
 
-// ─── Смена устройства во время звонка ────────────────────────────────────────
 async function switchVideoDevice(deviceId) {
 	if (!deviceId || !localStream || !peerConnection) return;
 	try {
-		// Останавливаем старый видео трек
 		localStream.getVideoTracks().forEach(t => t.stop());
 
 		const newStream = await navigator.mediaDevices.getUserMedia({
@@ -94,15 +86,12 @@ async function switchVideoDevice(deviceId) {
 		});
 		const newVideoTrack = newStream.getVideoTracks()[0];
 
-		// Заменяем трек в localStream
 		localStream.getVideoTracks().forEach(t => localStream.removeTrack(t));
 		localStream.addTrack(newVideoTrack);
 
-		// Обновляем PeerConnection
 		const sender = peerConnection.getSenders().find(s => s.track?.kind === 'video');
 		if (sender && !isScreenSharing) await sender.replaceTrack(newVideoTrack);
 
-		// Обновляем превью
 		if (!isScreenSharing) {
 			document.getElementById('localVideo').srcObject = localStream;
 		}
@@ -141,7 +130,6 @@ async function switchAudioDevice(deviceId) {
 	}
 }
 
-// Инициализируем выпадалки внутри звонка
 async function initCallDevices() {
 	const vs = document.getElementById('callVideoSelect');
 	const as = document.getElementById('callAudioSelect');
@@ -156,7 +144,6 @@ async function initCallDevices() {
 	as.onchange = () => switchAudioDevice(as.value);
 }
 
-// ─── Подключение к конференции ────────────────────────────────────────────────
 async function connect() {
 	userId       = document.getElementById('userId').value.trim();
 	remoteUserId = document.getElementById('remoteUserId').value.trim();
@@ -186,7 +173,6 @@ async function connect() {
 		document.getElementById('localId').textContent  = userId;
 		document.getElementById('remoteId').textContent = remoteUserId;
 
-		// Заполняем устройства внутри звонка
 		await initCallDevices();
 
 		connectToSignalingServer();
@@ -197,7 +183,6 @@ async function connect() {
 	}
 }
 
-// ─── Signaling сервер ─────────────────────────────────────────────────────────
 function connectToSignalingServer() {
 	const wsUrl  = window.location.origin + '/ws';
 	const socket = new SockJS(wsUrl);
@@ -254,7 +239,6 @@ function onConnected() {
 	}
 }
 
-// ─── PeerConnection ───────────────────────────────────────────────────────────
 function createPeerConnection() {
 	peerConnection       = new RTCPeerConnection(RTC_CONFIG);
 	remoteDescriptionSet = false;
@@ -301,7 +285,6 @@ function createPeerConnection() {
 	};
 }
 
-// ─── Offer / Answer ───────────────────────────────────────────────────────────
 async function makeCall() {
 	if (!peerConnection || peerConnection.signalingState !== 'stable') return;
 	try {
@@ -317,7 +300,6 @@ async function makeCall() {
 	}
 }
 
-// ─── Обработка входящих сигналов ─────────────────────────────────────────────
 async function handleSignal(signal) {
 	if (signal.from !== remoteUserId) return;
 
@@ -381,7 +363,6 @@ async function flushIceCandidates() {
 	iceCandidateBuffer = [];
 }
 
-// ─── Отправка сигнала ─────────────────────────────────────────────────────────
 function sendSignal(type, data) {
 	if (stompClient?.connected) {
 		stompClient.send('/app/signal', {}, JSON.stringify({
@@ -390,7 +371,6 @@ function sendSignal(type, data) {
 	}
 }
 
-// ─── Управление видео ─────────────────────────────────────────────────────────
 function toggleVideo() {
 	isVideoEnabled = !isVideoEnabled;
 	localStream?.getVideoTracks().forEach(t => t.enabled = isVideoEnabled);
@@ -408,7 +388,6 @@ function toggleVideo() {
 	}
 }
 
-// ─── Управление аудио ─────────────────────────────────────────────────────────
 function toggleAudio() {
 	isAudioEnabled = !isAudioEnabled;
 	localStream?.getAudioTracks().forEach(t => t.enabled = isAudioEnabled);
@@ -426,14 +405,12 @@ function toggleAudio() {
 	}
 }
 
-// ─── Громкость ────────────────────────────────────────────────────────────────
 function setVolume(value) {
 	const v = parseFloat(value);
 	document.getElementById('remoteVideo').volume = v;
 	document.getElementById('volumeValue').textContent = Math.round(v * 100) + '%';
 }
 
-// ─── Панель настроек во время звонка ─────────────────────────────────────────
 function toggleSettings() {
 	const panel = document.getElementById('settingsPanel');
 	const btn   = document.getElementById('settingsBtn');
@@ -441,7 +418,6 @@ function toggleSettings() {
 	btn.classList.toggle('ctrl-btn--active', open);
 }
 
-// ─── Демонстрация экрана ──────────────────────────────────────────────────────
 async function toggleScreenShare() {
 	if (!isScreenSharing) await startScreenShare();
 	else await stopScreenShare();
@@ -509,7 +485,6 @@ async function stopScreenShare() {
 	showNotification('Демонстрация экрана завершена', 'info');
 }
 
-// ─── Чат ──────────────────────────────────────────────────────────────────────
 function sendMessage() {
 	const input = document.getElementById('messageInput');
 	const text  = input.value.trim();
@@ -539,7 +514,6 @@ function escapeHtml(str) {
 		.replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ─── Завершение конференции ───────────────────────────────────────────────────
 function endCall() {
 	if (stompClient?.connected) {
 		stompClient.send('/app/leave', {}, JSON.stringify({
@@ -565,7 +539,6 @@ function endCall() {
 	showNotification('Конференция завершена', 'info');
 }
 
-// ─── Уход при закрытии вкладки ────────────────────────────────────────────────
 window.addEventListener('beforeunload', () => {
 	if (stompClient?.connected) {
 		stompClient.send('/app/leave', {}, JSON.stringify({
@@ -576,7 +549,6 @@ window.addEventListener('beforeunload', () => {
 	screenStream?.getTracks().forEach(t => t.stop());
 });
 
-// ─── Инициализация ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
 	populateLoginDevices();
 	navigator.mediaDevices.addEventListener('devicechange', populateLoginDevices);
@@ -585,7 +557,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 	});
 
-	// Закрывать панель настроек кликом вне неё
 	document.addEventListener('click', (e) => {
 		const panel = document.getElementById('settingsPanel');
 		const btn   = document.getElementById('settingsBtn');
