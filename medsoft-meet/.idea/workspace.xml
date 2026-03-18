@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="613e3a40-ee94-48f4-aa40-9305da9e8f7a" name="Changes" comment="add lab">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="613e3a40-ee94-48f4-aa40-9305da9e8f7a" name="Changes" comment="fix build config">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose (1).yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,6 +40,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Docker.Dockerfile.executor": "Run",
     "Docker.docker-compose (1).yml: Compose Deployment.executor": "Run",
     "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
     "Maven.medsoftmeet [clean,package].executor": "Run",
@@ -90,10 +89,22 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Dockerfile" type="docker-deploy" factoryName="dockerfile" temporary="true" server-name="Docker">
+      <deployment type="dockerfile">
+        <settings>
+          <option name="sourceFilePath" value="Dockerfile" />
+        </settings>
+      </deployment>
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
       </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
+      <deployment type="dockerfile" />
       <method v="2" />
     </configuration>
     <configuration name="docker-compose.yml: Compose Deployment" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
@@ -107,6 +118,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Docker.docker-compose.yml: Compose Deployment" />
+        <item itemvalue="Docker.Dockerfile" />
         <item itemvalue="Spring Boot.VideoConferenceApplication" />
       </list>
     </recent_temporary>
@@ -135,7 +147,7 @@
       <workItem from="1773765335839" duration="45000" />
       <workItem from="1773771367107" duration="643000" />
       <workItem from="1773772030325" duration="1047000" />
-      <workItem from="1773862929074" duration="309000" />
+      <workItem from="1773862929074" duration="1003000" />
     </task>
     <task id="LOCAL-00001" summary="add lab">
       <option name="closed" value="true" />
@@ -145,7 +157,23 @@
       <option name="project" value="LOCAL" />
       <updated>1772963149481</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="fix build config">
+      <option name="closed" value="true" />
+      <created>1773863272044</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1773863272044</updated>
+    </task>
+    <task id="LOCAL-00003" summary="fix build config">
+      <option name="closed" value="true" />
+      <created>1773863555080</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1773863555080</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -153,6 +181,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="add lab" />
-    <option name="LAST_COMMIT_MESSAGE" value="add lab" />
+    <MESSAGE value="fix build config" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix build config" />
   </component>
 </project>
