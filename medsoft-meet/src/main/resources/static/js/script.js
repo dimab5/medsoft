@@ -3,13 +3,15 @@ let peerConnection;
 let stompClient;
 let userId;
 let remoteUserId;
-let isVideoEnabled   = true;
-let isAudioEnabled   = true;
-let isScreenSharing  = false;
+let isVideoEnabled = true;
+let isAudioEnabled = true;
+let isScreenSharing = false;
 let screenStream;
-let iceCandidateBuffer   = [];
+let iceCandidateBuffer = [];
 let remoteDescriptionSet = false;
-let connectionNotified   = false;
+let connectionNotified = false;
+let isOfferInProgress = false; // Флаг для предотвращения множественных offer
+let connectionTimeout = null; // Таймаут соединения
 
 let selectedVideoDeviceId = null;
 let selectedAudioDeviceId = null;
@@ -25,8 +27,8 @@ const RTC_CONFIG = {
 
 function showNotification(message, type = 'info') {
 	const area = document.getElementById('notificationArea');
-	const el   = document.createElement('div');
-	el.className   = `notification ${type}`;
+	const el = document.createElement('div');
+	el.className = `notification ${type}`;
 	el.textContent = message;
 	area.appendChild(el);
 	setTimeout(() => el.remove(), 3500);
@@ -145,7 +147,7 @@ async function initCallDevices() {
 }
 
 async function connect() {
-	userId       = document.getElementById('userId').value.trim();
+	userId = document.getElementById('userId').value.trim();
 	remoteUserId = document.getElementById('remoteUserId').value.trim();
 
 	if (!userId || !remoteUserId) {
@@ -165,12 +167,12 @@ async function connect() {
 		localStream = await navigator.mediaDevices.getUserMedia(constraints);
 
 		const localVideo = document.getElementById('localVideo');
-		localVideo.srcObject    = localStream;
+		localVideo.srcObject = localStream;
 		localVideo.style.transform = 'scaleX(-1)';
 
 		document.getElementById('connectionScreen').style.display = 'none';
-		document.getElementById('conferenceScreen').style.display  = 'block';
-		document.getElementById('localId').textContent  = userId;
+		document.getElementById('conferenceScreen').style.display = 'block';
+		document.getElementById('localId').textContent = userId;
 		document.getElementById('remoteId').textContent = remoteUserId;
 
 		await initCallDevices();
@@ -184,9 +186,9 @@ async function connect() {
 }
 
 function connectToSignalingServer() {
-	const wsUrl  = window.location.origin + '/ws';
+	const wsUrl = window.location.origin + '/ws';
 	const socket = new SockJS(wsUrl);
-	stompClient  = Stomp.over(socket);
+	stompClient = Stomp.over(socket);
 	stompClient.debug = null;
 
 	stompClient.connect({}, onConnected, (err) => {
@@ -199,7 +201,18 @@ function connectToSignalingServer() {
 function onConnected() {
 	document.getElementById('connectionStatus').textContent = '🟡 Ожидание собеседника...';
 
-	createPeerConnection();
+	// Очищаем предыдущий таймаут если был
+	if (connectionTimeout) {
+		clearTimeout(connectionTimeout);
+	}
+
+	// Таймаут на случай, если второй пользователь не подключается
+	connectionTimeout = setTimeout(() => {
+		const remoteStatus = document.getElementById('remoteStatus').textContent;
+		if (remoteStatus === '🟡 Подключается...' || remoteStatus === '🟡 Ожидание собеседника...') {
+			showNotification('Собеседник не отвечает. Проверьте ID пользователя.', 'error');
+		}
+	}, 30000);
 
 	stompClient.subscribe('/topic/signal/' + userId, (msg) => {
 		handleSignal(JSON.parse(msg.body));
@@ -208,10 +221,19 @@ function onConnected() {
 	stompClient.subscribe('/topic/join', (msg) => {
 		const signal = JSON.parse(msg.body);
 		if (signal.from !== remoteUserId) return;
+
 		showNotification('Собеседник подключился!', 'success');
 		document.getElementById('remoteStatus').textContent = '🟡 Подключается...';
-		if (userId < remoteUserId) {
-			makeCall();
+
+		// Создаем peer connection если его еще нет
+		if (!peerConnection) {
+			createPeerConnection();
+		}
+
+		// Запускаем вызов только если мы инициатор и нет активного offer
+		if (userId < remoteUserId && !isOfferInProgress) {
+			console.log(`[${userId}] Запуск вызова по join событию`);
+			setTimeout(() => makeCall(), 1000);
 		}
 	});
 
@@ -233,24 +255,51 @@ function onConnected() {
 }
 
 function createPeerConnection() {
-	peerConnection       = new RTCPeerConnection(RTC_CONFIG);
-	remoteDescriptionSet = false;
-	iceCandidateBuffer   = [];
-	connectionNotified   = false;
+	// Если уже есть соединение, закрываем его
+	if (peerConnection) {
+		peerConnection.close();
+	}
 
-	localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+	peerConnection = new RTCPeerConnection(RTC_CONFIG);
+	remoteDescriptionSet = false;
+	iceCandidateBuffer = [];
+	connectionNotified = false;
+	isOfferInProgress = false;
+
+	console.log(`[${userId}] Создан peer connection`);
+
+	localStream.getTracks().forEach(track => {
+		peerConnection.addTrack(track, localStream);
+	});
 
 	peerConnection.onicecandidate = ({ candidate }) => {
-		if (candidate) sendSignal('ice-candidate', { candidate });
+		if (candidate) {
+			console.log(`[${userId}] Отправка ICE кандидата`);
+			sendSignal('ice-candidate', { candidate });
+		}
 	};
 
 	peerConnection.oniceconnectionstatechange = () => {
-		console.log('ICE state:', peerConnection.iceConnectionState);
+		console.log(`[${userId}] ICE state:`, peerConnection.iceConnectionState);
+	};
+
+	peerConnection.onsignalingstatechange = () => {
+		console.log(`[${userId}] Signaling state:`, peerConnection.signalingState);
 	};
 
 	peerConnection.onnegotiationneeded = async () => {
-		if (peerConnection.signalingState !== 'stable') return;
+		if (isOfferInProgress) {
+			console.log(`[${userId}] Переговоры уже в процессе, пропускаем`);
+			return;
+		}
+
+		if (peerConnection.signalingState !== 'stable') {
+			console.log(`[${userId}] Переговоры отложены, состояние:`, peerConnection.signalingState);
+			return;
+		}
+
 		if (userId < remoteUserId) {
+			console.log(`[${userId}] Запуск переговоров...`);
 			await makeCall();
 		}
 	};
@@ -268,16 +317,22 @@ function createPeerConnection() {
 	};
 
 	peerConnection.onconnectionstatechange = () => {
-		const state  = peerConnection.connectionState;
+		const state = peerConnection.connectionState;
 		const status = document.getElementById('connectionStatus');
 		const map = {
-			connecting:   '🟡 Устанавливается...',
-			connected:    '🟢 Соединение установлено',
-			disconnected: '🟠 Соединение прервано',
-			failed:       '🔴 Ошибка соединения',
-			closed:       '⚪ Закрыто',
+			'connecting': '🟡 Устанавливается...',
+			'connected': '🟢 Соединение установлено',
+			'disconnected': '🟠 Соединение прервано',
+			'failed': '🔴 Ошибка соединения',
+			'closed': '⚪ Закрыто',
 		};
 		status.textContent = map[state] || state;
+
+		if (state === 'connected' && connectionTimeout) {
+			clearTimeout(connectionTimeout);
+			connectionTimeout = null;
+		}
+
 		if (state === 'disconnected' || state === 'failed') {
 			document.getElementById('remoteVideo').srcObject = null;
 			document.getElementById('remoteStatus').textContent = '❌ Связь потеряна';
@@ -286,16 +341,49 @@ function createPeerConnection() {
 }
 
 async function makeCall() {
-	if (!peerConnection || peerConnection.signalingState !== 'stable') return;
+	// Предотвращаем множественные offer
+	if (isOfferInProgress) {
+		console.log(`[${userId}] Offer уже в процессе, пропускаем`);
+		return;
+	}
+
+	if (!peerConnection) {
+		console.error('[makeCall] peerConnection не существует');
+		return;
+	}
+
+	// Проверяем, что мы действительно должны создавать offer
+	if (userId > remoteUserId) {
+		console.log(`[${userId}] Пропускаем создание offer, так как не мы инициатор`);
+		return;
+	}
+
+	// Проверяем состояние
+	if (peerConnection.signalingState !== 'stable') {
+		console.log(`[${userId}] Ожидание стабильного состояния, текущее:`, peerConnection.signalingState);
+		return;
+	}
+
 	try {
+		isOfferInProgress = true;
+		console.log(`[${userId}] Создание offer...`);
+
 		const offer = await peerConnection.createOffer({
 			offerToReceiveVideo: true,
 			offerToReceiveAudio: true,
 		});
+
 		await peerConnection.setLocalDescription(offer);
+		console.log(`[${userId}] Offer создан и установлен как local description`);
 		sendSignal('offer', { sdp: peerConnection.localDescription });
+
+		// Сбрасываем флаг через некоторое время
+		setTimeout(() => {
+			isOfferInProgress = false;
+		}, 5000);
 	} catch (err) {
-		console.error('Ошибка создания offer:', err);
+		console.error(`[${userId}] Ошибка создания offer:`, err);
+		isOfferInProgress = false;
 		showNotification('Ошибка создания соединения', 'error');
 	}
 }
@@ -303,21 +391,41 @@ async function makeCall() {
 async function handleSignal(signal) {
 	if (signal.from !== remoteUserId) return;
 
+	console.log(`[${userId}] Получен сигнал:`, signal.type);
+
 	try {
 		switch (signal.type) {
 			case 'offer': {
-				if (peerConnection.signalingState !== 'stable') {
-					await peerConnection.setLocalDescription({ type: 'rollback' });
+				// Если мы получили offer, значит мы не должны создавать свой
+				isOfferInProgress = false;
+
+				if (!peerConnection) {
+					createPeerConnection();
 				}
+
+				// Обработка состояния
+				if (peerConnection.signalingState !== 'stable') {
+					if (peerConnection.signalingState === 'have-local-offer') {
+						await peerConnection.setLocalDescription({ type: 'rollback' });
+					}
+				}
+
 				await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data.sdp));
 				remoteDescriptionSet = true;
+
+				// Обрабатываем буфер ICE кандидатов
 				await flushIceCandidates();
+
+				console.log(`[${userId}] Создание answer...`);
 				const answer = await peerConnection.createAnswer();
 				await peerConnection.setLocalDescription(answer);
 				sendSignal('answer', { sdp: peerConnection.localDescription });
 				break;
 			}
+
 			case 'answer': {
+				isOfferInProgress = false;
+
 				if (peerConnection.signalingState === 'have-local-offer') {
 					await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data.sdp));
 					remoteDescriptionSet = true;
@@ -325,52 +433,80 @@ async function handleSignal(signal) {
 				}
 				break;
 			}
+
 			case 'ice-candidate': {
 				if (signal.data?.candidate) {
-					if (remoteDescriptionSet) {
-						await peerConnection.addIceCandidate(new RTCIceCandidate(signal.data.candidate));
+					if (remoteDescriptionSet && peerConnection) {
+						try {
+							await peerConnection.addIceCandidate(new RTCIceCandidate(signal.data.candidate));
+						} catch (e) {
+							console.warn('Ошибка добавления ICE кандидата:', e);
+						}
 					} else {
 						iceCandidateBuffer.push(signal.data.candidate);
 					}
 				}
 				break;
 			}
+
 			case 'chat':
 				displayMessage('remote', signal.data.text, signal.data.senderName || remoteUserId);
 				break;
+
 			case 'screen-share-start':
 				showNotification('Собеседник начал демонстрацию экрана 🖥️', 'info');
 				document.getElementById('remoteStatus').textContent = '🖥️ Демонстрация';
 				break;
+
 			case 'screen-share-stop':
 				showNotification('Собеседник завершил демонстрацию экрана', 'info');
 				document.getElementById('remoteStatus').textContent = '🟢 В сети';
 				break;
+
 			case 'ready': {
-				if (userId < remoteUserId) {
-					makeCall();
+				console.log(`[${userId}] Получен ready от ${signal.from}`);
+
+				if (!peerConnection) {
+					createPeerConnection();
+				}
+
+				if (userId < remoteUserId && !isOfferInProgress) {
+					setTimeout(() => {
+						if (peerConnection?.signalingState === 'stable') {
+							makeCall();
+						}
+					}, 1000);
 				}
 				break;
 			}
 		}
 	} catch (err) {
-		console.error('Ошибка обработки сигнала', signal.type, err);
+		console.error(`[${userId}] Ошибка обработки сигнала ${signal.type}:`, err);
 	}
 }
 
 async function flushIceCandidates() {
-	for (const candidate of iceCandidateBuffer) {
+	const buffer = [...iceCandidateBuffer];
+	iceCandidateBuffer = [];
+
+	for (const candidate of buffer) {
 		try {
 			await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
 		} catch (e) {
-			console.warn('Ошибка буферизированного ICE кандидата:', e);
+			console.warn('Ошибка добавления буферизированного кандидата:', e);
 		}
 	}
-	iceCandidateBuffer = [];
 }
 
 function sendSignal(type, data) {
+	// Для offer проверяем, что мы действительно должны его отправлять
+	if (type === 'offer' && userId > remoteUserId) {
+		console.warn(`[${userId}] Попытка отправить offer, хотя мы не инициатор`);
+		return;
+	}
+
 	if (stompClient?.connected) {
+		console.log(`[${userId}] Отправка сигнала:`, type);
 		stompClient.send('/app/signal', {}, JSON.stringify({
 			type, from: userId, to: remoteUserId, data
 		}));
@@ -419,8 +555,8 @@ function setVolume(value) {
 
 function toggleSettings() {
 	const panel = document.getElementById('settingsPanel');
-	const btn   = document.getElementById('settingsBtn');
-	const open  = panel.classList.toggle('settings-panel--open');
+	const btn = document.getElementById('settingsBtn');
+	const open = panel.classList.toggle('settings-panel--open');
 	btn.classList.toggle('ctrl-btn--active', open);
 }
 
@@ -445,7 +581,7 @@ async function startScreenShare() {
 		}
 
 		const localVideo = document.getElementById('localVideo');
-		localVideo.srcObject      = screenStream;
+		localVideo.srcObject = screenStream;
 		localVideo.style.transform = 'none';
 
 		screenVideoTrack.onended = () => stopScreenShare();
@@ -479,7 +615,7 @@ async function stopScreenShare() {
 	if (videoSender && cameraTrack) await videoSender.replaceTrack(cameraTrack);
 
 	const localVideo = document.getElementById('localVideo');
-	localVideo.srcObject      = localStream;
+	localVideo.srcObject = localStream;
 	localVideo.style.transform = 'scaleX(-1)';
 
 	document.getElementById('screenShareBtn').innerHTML =
@@ -493,7 +629,7 @@ async function stopScreenShare() {
 
 function sendMessage() {
 	const input = document.getElementById('messageInput');
-	const text  = input.value.trim();
+	const text = input.value.trim();
 	if (!text) return;
 	displayMessage('me', text, 'Я');
 	sendSignal('chat', { text, senderName: userId });
@@ -502,22 +638,24 @@ function sendMessage() {
 
 function displayMessage(type, text, name) {
 	const container = document.getElementById('messages');
-	const div       = document.createElement('div');
-	div.className   = `message ${type === 'me' ? 'my-message' : 'remote-message'}`;
+	const div = document.createElement('div');
+	div.className = `message ${type === 'me' ? 'my-message' : 'remote-message'}`;
 	const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 	div.innerHTML = `
-		<div class="sender">${escapeHtml(name || type)}</div>
-		<div class="text">${escapeHtml(text)}</div>
-		<div class="time">${time}</div>
-	`;
+        <div class="sender">${escapeHtml(name || type)}</div>
+        <div class="text">${escapeHtml(text)}</div>
+        <div class="time">${time}</div>
+    `;
 	container.appendChild(div);
 	container.scrollTop = container.scrollHeight;
 }
 
 function escapeHtml(str) {
 	return String(str)
-		.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
 }
 
 function endCall() {
@@ -532,15 +670,28 @@ function endCall() {
 	localStream?.getTracks().forEach(t => t.stop());
 	screenStream?.getTracks().forEach(t => t.stop());
 
-	peerConnection = null; localStream = null; screenStream = null;
-	isScreenSharing = false; isVideoEnabled = true; isAudioEnabled = true;
-	remoteDescriptionSet = false; connectionNotified = false; iceCandidateBuffer = [];
+	// Сбрасываем все флаги
+	peerConnection = null;
+	localStream = null;
+	screenStream = null;
+	isScreenSharing = false;
+	isVideoEnabled = true;
+	isAudioEnabled = true;
+	remoteDescriptionSet = false;
+	connectionNotified = false;
+	iceCandidateBuffer = [];
+	isOfferInProgress = false;
+
+	if (connectionTimeout) {
+		clearTimeout(connectionTimeout);
+		connectionTimeout = null;
+	}
 
 	document.getElementById('conferenceScreen').style.display = 'none';
 	document.getElementById('connectionScreen').style.display = 'block';
 	document.getElementById('remoteVideo').srcObject = null;
-	document.getElementById('localVideo').srcObject  = null;
-	document.getElementById('messages').innerHTML    = '';
+	document.getElementById('localVideo').srcObject = null;
+	document.getElementById('messages').innerHTML = '';
 
 	showNotification('Конференция завершена', 'info');
 }
@@ -560,12 +711,15 @@ document.addEventListener('DOMContentLoaded', () => {
 	navigator.mediaDevices.addEventListener('devicechange', populateLoginDevices);
 
 	document.getElementById('messageInput')?.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			sendMessage();
+		}
 	});
 
 	document.addEventListener('click', (e) => {
 		const panel = document.getElementById('settingsPanel');
-		const btn   = document.getElementById('settingsBtn');
+		const btn = document.getElementById('settingsBtn');
 		if (panel?.classList.contains('settings-panel--open') &&
 			!panel.contains(e.target) && !btn.contains(e.target)) {
 			panel.classList.remove('settings-panel--open');
