@@ -13,7 +13,6 @@
 </head>
 <body>
 
-<!-- ─── Экран входа ─────────────────────────────────────────────────────────── -->
 <div id="connectionScreen" class="screen screen--login">
     <div class="login-card">
 
@@ -69,7 +68,6 @@
     </div>
 </div>
 
-<!-- ─── Экран конференции ──────────────────────────────────────────────────── -->
 <div id="conferenceScreen" class="screen screen--conf" style="display:none">
 
     <header class="conf-header">
@@ -78,7 +76,6 @@
             MedSoftMeet
         </div>
 
-        <!-- Комната -->
         <div class="conf-room-badge">
             <svg viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 3V2a2 2 0 014 0v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
             <span id="roomDisplay"></span>
@@ -98,7 +95,6 @@
     <main class="conf-main">
         <section class="video-section">
 
-            <!-- Локальное видео -->
             <div class="video-tile video-tile--local">
                 <video id="localVideo" autoplay playsinline muted></video>
                 <div class="tile-overlay tile-overlay--top">
@@ -138,11 +134,9 @@
                 </div>
             </div>
 
-            <!-- Удалённое видео -->
             <div class="video-tile video-tile--remote">
                 <video id="remoteVideo" autoplay playsinline></video>
 
-                <!-- Заглушка пока собеседник не подключился -->
                 <div class="remote-placeholder" id="remotePlaceholder">
                     <div class="remote-placeholder__icon">
                         <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="18" r="9" stroke="currentColor" stroke-width="2"/><path d="M8 42c0-8.84 7.16-16 16-16s16 7.16 16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -201,14 +195,12 @@
         document.getElementById('roomId').value = `${adj}-${noun}-${num}`;
     }
 
-    // Скрываем placeholder когда появляется видео
     document.addEventListener('DOMContentLoaded', () => {
         const remoteVideo = document.getElementById('remoteVideo');
         const placeholder = document.getElementById('remotePlaceholder');
         remoteVideo.addEventListener('loadedmetadata', () => {
             placeholder.style.display = 'none';
         });
-        // Показываем снова если поток исчез
         const observer = new MutationObserver(() => {
             if (!remoteVideo.srcObject) placeholder.style.display = 'flex';
         });

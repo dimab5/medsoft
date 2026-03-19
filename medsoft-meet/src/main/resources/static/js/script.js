@@ -206,17 +206,14 @@ function onConnected() {
 		}
 	}, 30000);
 
-	// Подписываемся на личный канал для WebRTC-сигналов (адресованных нам по userId)
 	stompClient.subscribe('/topic/signal/' + userId, (msg) => {
 		handleSignal(JSON.parse(msg.body));
 	});
 
-	// Подписываемся на события комнаты (join/leave)
 	stompClient.subscribe('/topic/room/' + roomId, (msg) => {
 		handleRoomEvent(JSON.parse(msg.body));
 	});
 
-	// Входим в комнату
 	stompClient.send('/app/join', {}, JSON.stringify({
 		type: 'join',
 		from: userId,
@@ -226,7 +223,7 @@ function onConnected() {
 }
 
 function handleRoomEvent(signal) {
-	if (signal.from === userId) return; // Игнорируем свои события
+	if (signal.from === userId) return;
 
 	if (signal.type === 'join') {
 		remoteUserId = signal.from;
@@ -236,12 +233,10 @@ function handleRoomEvent(signal) {
 
 		if (!peerConnection) createPeerConnection();
 
-		// Инициатор — тот, чей userId лексикографически меньше
 		if (userId < remoteUserId && !isOfferInProgress) {
 			console.log(`[${userId}] Запуск вызова как инициатор`);
 			setTimeout(() => makeCall(), 1000);
 		} else if (userId > remoteUserId) {
-			// Мы присоединились позже — сообщаем что мы готовы
 			sendSignalTo(remoteUserId, 'ready', {});
 		}
 	} else if (signal.type === 'leave') {
@@ -380,9 +375,7 @@ async function makeCall() {
 }
 
 async function handleSignal(signal) {
-	// Принимаем сигналы только от текущего собеседника в комнате
 	if (!remoteUserId) {
-		// Если мы ещё не знаем собеседника, запоминаем его из сигнала
 		remoteUserId = signal.from;
 		document.getElementById('remoteId').textContent = remoteUserId;
 		if (!peerConnection) createPeerConnection();
@@ -481,7 +474,6 @@ async function flushIceCandidates() {
 	}
 }
 
-// Отправка WebRTC-сигнала конкретному пользователю через его личный топик
 function sendSignalTo(targetUserId, type, data) {
 	if (!stompClient?.connected) return;
 	console.log(`[${userId}] Отправка сигнала ${type} → ${targetUserId}`);

@@ -14,10 +14,6 @@ public class SignalingController {
 
 	private final SimpMessagingTemplate messagingTemplate;
 
-	/**
-	 * WebRTC-сигналы (offer, answer, ice-candidate, chat, screen-share-*, ready).
-	 * Поле signal.to = userId получателя — маршрутизируем точечно.
-	 */
 	@MessageMapping("/signal")
 	public void handleSignal(Signal signal) {
 		if (signal == null || signal.getTo() == null || signal.getTo().isBlank()) {
@@ -28,10 +24,6 @@ public class SignalingController {
 		messagingTemplate.convertAndSend("/topic/signal/" + signal.getTo(), signal);
 	}
 
-	/**
-	 * Вход в комнату.
-	 * Поле signal.to = roomId — рассылаем всем участникам комнаты.
-	 */
 	@MessageMapping("/join")
 	public void handleJoin(Signal signal) {
 		if (signal == null || signal.getTo() == null || signal.getTo().isBlank()) {
@@ -42,10 +34,6 @@ public class SignalingController {
 		messagingTemplate.convertAndSend("/topic/room/" + signal.getTo(), signal);
 	}
 
-	/**
-	 * Выход из комнаты.
-	 * Поле signal.to = roomId — рассылаем всем участникам комнаты.
-	 */
 	@MessageMapping("/leave")
 	public void handleLeave(Signal signal) {
 		if (signal == null || signal.getTo() == null || signal.getTo().isBlank()) {
