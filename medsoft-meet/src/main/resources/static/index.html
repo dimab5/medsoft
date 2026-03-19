@@ -6,15 +6,17 @@
     <title>MedSoftMeet — Телеконсультация</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 </head>
 <body>
 
+<!-- ─── Экран входа ─────────────────────────────────────────────────────────── -->
 <div id="connectionScreen" class="screen screen--login">
     <div class="login-card">
+
         <div class="login-logo">
             <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="20" cy="20" r="20" fill="var(--accent)"/>
@@ -22,23 +24,31 @@
             </svg>
             <span>MedSoftMeet</span>
         </div>
+
         <h1 class="login-title">Телеконсультация</h1>
-        <p class="login-sub">Введите идентификаторы участников для подключения</p>
+        <p class="login-sub">Введите своё имя и ID комнаты — собеседник войдёт туда же</p>
 
         <div class="field">
-            <label for="userId">Ваш ID</label>
-            <input type="text" id="userId" class="input" placeholder="например: doctor_1" value="user1" autocomplete="off">
+            <label for="userId">Ваше имя / ID</label>
+            <input type="text" id="userId" class="input" placeholder="например: doctor_1" autocomplete="off">
         </div>
+
         <div class="field">
-            <label for="remoteUserId">ID собеседника</label>
-            <input type="text" id="remoteUserId" class="input" placeholder="например: patient_1" value="user2" autocomplete="off">
+            <label for="roomId">ID комнаты</label>
+            <div class="room-input-wrap">
+                <input type="text" id="roomId" class="input" placeholder="например: consult-2025" autocomplete="off">
+                <button type="button" class="room-gen-btn" onclick="generateRoomId()" title="Сгенерировать ID">
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M13.5 2.5v4h-4M2.5 13.5v-4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 6.5A6 6 0 103.4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <p class="field-hint">Поделитесь этим ID с собеседником</p>
         </div>
 
         <div class="devices-section">
             <button class="devices-toggle" onclick="toggleLoginDevices(this)" type="button">
                 <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                 Настройки устройств
-                <svg class="toggle-arrow" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="toggle-arrow" viewBox="0 0 12 12" fill="none"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="devices-body" id="devicesBody">
                 <div class="field">
@@ -54,11 +64,12 @@
 
         <button onclick="connect()" class="btn-connect">
             <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zM7 9l2.5 2.5L14 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Начать конференцию
+            Войти в комнату
         </button>
     </div>
 </div>
 
+<!-- ─── Экран конференции ──────────────────────────────────────────────────── -->
 <div id="conferenceScreen" class="screen screen--conf" style="display:none">
 
     <header class="conf-header">
@@ -66,10 +77,18 @@
             <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="var(--accent)" stroke-width="2"/><path d="M12 6v12M6 12h12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
             MedSoftMeet
         </div>
+
+        <!-- Комната -->
+        <div class="conf-room-badge">
+            <svg viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 3V2a2 2 0 014 0v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <span id="roomDisplay"></span>
+        </div>
+
         <div class="conf-status-bar">
             <div class="status-dot"></div>
             <span id="connectionStatus">Подключение...</span>
         </div>
+
         <button onclick="endCall()" class="btn-end-header">
             <svg viewBox="0 0 20 20" fill="none"><path d="M2 10c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10.5a1.5 1.5 0 011.5-1.5h.5a1.5 1.5 0 011.5 1.5v2a1.5 1.5 0 01-1.5 1.5h-.5A1.5 1.5 0 017 12.5v-2z" stroke="currentColor" stroke-width="2"/></svg>
             Завершить
@@ -78,6 +97,8 @@
 
     <main class="conf-main">
         <section class="video-section">
+
+            <!-- Локальное видео -->
             <div class="video-tile video-tile--local">
                 <video id="localVideo" autoplay playsinline muted></video>
                 <div class="tile-overlay tile-overlay--top">
@@ -117,11 +138,22 @@
                 </div>
             </div>
 
+            <!-- Удалённое видео -->
             <div class="video-tile video-tile--remote">
                 <video id="remoteVideo" autoplay playsinline></video>
+
+                <!-- Заглушка пока собеседник не подключился -->
+                <div class="remote-placeholder" id="remotePlaceholder">
+                    <div class="remote-placeholder__icon">
+                        <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="18" r="9" stroke="currentColor" stroke-width="2"/><path d="M8 42c0-8.84 7.16-16 16-16s16 7.16 16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </div>
+                    <p class="remote-placeholder__text">Ожидание собеседника...</p>
+                    <p class="remote-placeholder__sub">Поделитесь ID комнаты: <strong id="roomHint"></strong></p>
+                </div>
+
                 <div class="tile-overlay tile-overlay--top">
-                    <span class="tile-name">Собеседник · <span id="remoteId"></span></span>
-                    <span id="remoteStatus" class="remote-status-badge"></span>
+                    <span class="tile-name">Собеседник · <span id="remoteId">—</span></span>
+                    <span id="remoteStatus" class="remote-status-badge">🟡 Ожидание</span>
                 </div>
                 <div class="tile-overlay tile-overlay--bottom">
                     <div class="volume-row">
@@ -153,12 +185,35 @@
 
 <script src="/js/script.js"></script>
 <script>
-	function toggleLoginDevices(btn) {
-		const body  = document.getElementById('devicesBody');
-		const arrow = btn.querySelector('.toggle-arrow');
-		const open  = body.classList.toggle('devices-body--open');
-		arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
-	}
+    function toggleLoginDevices(btn) {
+        const body  = document.getElementById('devicesBody');
+        const arrow = btn.querySelector('.toggle-arrow');
+        const open  = body.classList.toggle('devices-body--open');
+        arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    function generateRoomId() {
+        const adjectives = ['bright', 'calm', 'swift', 'clear', 'safe', 'warm', 'quiet'];
+        const nouns      = ['consult', 'session', 'meeting', 'room', 'call', 'visit'];
+        const adj  = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        const num  = Math.floor(100 + Math.random() * 900);
+        document.getElementById('roomId').value = `${adj}-${noun}-${num}`;
+    }
+
+    // Скрываем placeholder когда появляется видео
+    document.addEventListener('DOMContentLoaded', () => {
+        const remoteVideo = document.getElementById('remoteVideo');
+        const placeholder = document.getElementById('remotePlaceholder');
+        remoteVideo.addEventListener('loadedmetadata', () => {
+            placeholder.style.display = 'none';
+        });
+        // Показываем снова если поток исчез
+        const observer = new MutationObserver(() => {
+            if (!remoteVideo.srcObject) placeholder.style.display = 'flex';
+        });
+        observer.observe(remoteVideo, { attributeFilter: ['srcObject'] });
+    });
 </script>
 </body>
 </html>

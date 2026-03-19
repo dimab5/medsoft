@@ -2,7 +2,8 @@ let localStream;
 let peerConnection;
 let stompClient;
 let userId;
-let remoteUserId;
+let roomId;
+let remoteUserId = null;
 let isVideoEnabled = true;
 let isAudioEnabled = true;
 let isScreenSharing = false;
@@ -10,8 +11,8 @@ let screenStream;
 let iceCandidateBuffer = [];
 let remoteDescriptionSet = false;
 let connectionNotified = false;
-let isOfferInProgress = false; // Флаг для предотвращения множественных offer
-let connectionTimeout = null; // Таймаут соединения
+let isOfferInProgress = false;
+let connectionTimeout = null;
 
 let selectedVideoDeviceId = null;
 let selectedAudioDeviceId = null;
@@ -148,14 +149,10 @@ async function initCallDevices() {
 
 async function connect() {
 	userId = document.getElementById('userId').value.trim();
-	remoteUserId = document.getElementById('remoteUserId').value.trim();
+	roomId = document.getElementById('roomId').value.trim();
 
-	if (!userId || !remoteUserId) {
-		showNotification('Пожалуйста, введите ID участников', 'error');
-		return;
-	}
-	if (userId === remoteUserId) {
-		showNotification('ID участников должны быть разными', 'error');
+	if (!userId || !roomId) {
+		showNotification('Пожалуйста, введите ваше имя и ID комнаты', 'error');
 		return;
 	}
 
@@ -173,12 +170,12 @@ async function connect() {
 		document.getElementById('connectionScreen').style.display = 'none';
 		document.getElementById('conferenceScreen').style.display = 'block';
 		document.getElementById('localId').textContent = userId;
-		document.getElementById('remoteId').textContent = remoteUserId;
+		document.getElementById('roomDisplay').textContent = roomId;
 
 		await initCallDevices();
 
 		connectToSignalingServer();
-		showNotification('Подключение к конференции...', 'info');
+		showNotification('Подключение к комнате ' + roomId + '...', 'info');
 	} catch (err) {
 		console.error('Ошибка доступа к медиаустройствам:', err);
 		showNotification('Не удалось получить доступ к камере и микрофону', 'error');
@@ -201,64 +198,77 @@ function connectToSignalingServer() {
 function onConnected() {
 	document.getElementById('connectionStatus').textContent = '🟡 Ожидание собеседника...';
 
-	// Очищаем предыдущий таймаут если был
-	if (connectionTimeout) {
-		clearTimeout(connectionTimeout);
-	}
+	if (connectionTimeout) clearTimeout(connectionTimeout);
 
-	// Таймаут на случай, если второй пользователь не подключается
 	connectionTimeout = setTimeout(() => {
-		const remoteStatus = document.getElementById('remoteStatus').textContent;
-		if (remoteStatus === '🟡 Подключается...' || remoteStatus === '🟡 Ожидание собеседника...') {
-			showNotification('Собеседник не отвечает. Проверьте ID пользователя.', 'error');
+		if (!remoteUserId) {
+			showNotification('Собеседник ещё не подключился. Ожидаем...', 'info');
 		}
 	}, 30000);
 
+	// Подписываемся на личный канал для WebRTC-сигналов (адресованных нам по userId)
 	stompClient.subscribe('/topic/signal/' + userId, (msg) => {
 		handleSignal(JSON.parse(msg.body));
 	});
 
-	stompClient.subscribe('/topic/join', (msg) => {
-		const signal = JSON.parse(msg.body);
-		if (signal.from !== remoteUserId) return;
-
-		showNotification('Собеседник подключился!', 'success');
-		document.getElementById('remoteStatus').textContent = '🟡 Подключается...';
-
-		// Создаем peer connection если его еще нет
-		if (!peerConnection) {
-			createPeerConnection();
-		}
-
-		// Запускаем вызов только если мы инициатор и нет активного offer
-		if (userId < remoteUserId && !isOfferInProgress) {
-			console.log(`[${userId}] Запуск вызова по join событию`);
-			setTimeout(() => makeCall(), 1000);
-		}
+	// Подписываемся на события комнаты (join/leave)
+	stompClient.subscribe('/topic/room/' + roomId, (msg) => {
+		handleRoomEvent(JSON.parse(msg.body));
 	});
 
-	stompClient.subscribe('/topic/leave', (msg) => {
-		const signal = JSON.parse(msg.body);
+	// Входим в комнату
+	stompClient.send('/app/join', {}, JSON.stringify({
+		type: 'join',
+		from: userId,
+		to: roomId,
+		data: null
+	}));
+}
+
+function handleRoomEvent(signal) {
+	if (signal.from === userId) return; // Игнорируем свои события
+
+	if (signal.type === 'join') {
+		remoteUserId = signal.from;
+		showNotification(remoteUserId + ' подключился!', 'success');
+		document.getElementById('remoteId').textContent = remoteUserId;
+		document.getElementById('remoteStatus').textContent = '🟡 Подключается...';
+
+		if (!peerConnection) createPeerConnection();
+
+		// Инициатор — тот, чей userId лексикографически меньше
+		if (userId < remoteUserId && !isOfferInProgress) {
+			console.log(`[${userId}] Запуск вызова как инициатор`);
+			setTimeout(() => makeCall(), 1000);
+		} else if (userId > remoteUserId) {
+			// Мы присоединились позже — сообщаем что мы готовы
+			sendSignalTo(remoteUserId, 'ready', {});
+		}
+	} else if (signal.type === 'leave') {
 		if (signal.from === remoteUserId) {
-			showNotification('Собеседник покинул конференцию', 'error');
+			showNotification(remoteUserId + ' покинул комнату', 'error');
 			document.getElementById('remoteVideo').srcObject = null;
 			document.getElementById('remoteStatus').textContent = '❌ Собеседник отключился';
 			document.getElementById('connectionStatus').textContent = '⚪ Собеседник отключился';
+			remoteUserId = null;
+			resetPeerConnection();
 		}
-	});
+	}
+}
 
-	stompClient.send('/app/join', {}, JSON.stringify({
-		type: 'join', from: userId, to: 'all', data: null
-	}));
-
-	sendSignal('ready', {});
+function resetPeerConnection() {
+	if (peerConnection) {
+		peerConnection.close();
+		peerConnection = null;
+	}
+	remoteDescriptionSet = false;
+	iceCandidateBuffer = [];
+	connectionNotified = false;
+	isOfferInProgress = false;
 }
 
 function createPeerConnection() {
-	// Если уже есть соединение, закрываем его
-	if (peerConnection) {
-		peerConnection.close();
-	}
+	if (peerConnection) peerConnection.close();
 
 	peerConnection = new RTCPeerConnection(RTC_CONFIG);
 	remoteDescriptionSet = false;
@@ -266,16 +276,15 @@ function createPeerConnection() {
 	connectionNotified = false;
 	isOfferInProgress = false;
 
-	console.log(`[${userId}] Создан peer connection`);
+	console.log(`[${userId}] Создан peer connection с ${remoteUserId}`);
 
 	localStream.getTracks().forEach(track => {
 		peerConnection.addTrack(track, localStream);
 	});
 
 	peerConnection.onicecandidate = ({ candidate }) => {
-		if (candidate) {
-			console.log(`[${userId}] Отправка ICE кандидата`);
-			sendSignal('ice-candidate', { candidate });
+		if (candidate && remoteUserId) {
+			sendSignalTo(remoteUserId, 'ice-candidate', { candidate });
 		}
 	};
 
@@ -285,23 +294,19 @@ function createPeerConnection() {
 
 	peerConnection.onsignalingstatechange = () => {
 		console.log(`[${userId}] Signaling state:`, peerConnection.signalingState);
+		// Сбрасываем флаг когда состояние стабилизировалось
+		if (peerConnection.signalingState === 'stable') {
+			isOfferInProgress = false;
+		}
 	};
 
 	peerConnection.onnegotiationneeded = async () => {
-		if (isOfferInProgress) {
-			console.log(`[${userId}] Переговоры уже в процессе, пропускаем`);
-			return;
-		}
+		if (isOfferInProgress) return;
+		if (peerConnection.signalingState !== 'stable') return;
+		if (!remoteUserId || userId > remoteUserId) return;
 
-		if (peerConnection.signalingState !== 'stable') {
-			console.log(`[${userId}] Переговоры отложены, состояние:`, peerConnection.signalingState);
-			return;
-		}
-
-		if (userId < remoteUserId) {
-			console.log(`[${userId}] Запуск переговоров...`);
-			await makeCall();
-		}
+		console.log(`[${userId}] onnegotiationneeded → makeCall`);
+		await makeCall();
 	};
 
 	peerConnection.ontrack = ({ streams }) => {
@@ -318,7 +323,6 @@ function createPeerConnection() {
 
 	peerConnection.onconnectionstatechange = () => {
 		const state = peerConnection.connectionState;
-		const status = document.getElementById('connectionStatus');
 		const map = {
 			'connecting': '🟡 Устанавливается...',
 			'connected': '🟢 Соединение установлено',
@@ -326,7 +330,7 @@ function createPeerConnection() {
 			'failed': '🔴 Ошибка соединения',
 			'closed': '⚪ Закрыто',
 		};
-		status.textContent = map[state] || state;
+		document.getElementById('connectionStatus').textContent = map[state] || state;
 
 		if (state === 'connected' && connectionTimeout) {
 			clearTimeout(connectionTimeout);
@@ -341,46 +345,33 @@ function createPeerConnection() {
 }
 
 async function makeCall() {
-	// Предотвращаем множественные offer
 	if (isOfferInProgress) {
 		console.log(`[${userId}] Offer уже в процессе, пропускаем`);
 		return;
 	}
-
 	if (!peerConnection) {
 		console.error('[makeCall] peerConnection не существует');
 		return;
 	}
-
-	// Проверяем, что мы действительно должны создавать offer
-	if (userId > remoteUserId) {
-		console.log(`[${userId}] Пропускаем создание offer, так как не мы инициатор`);
+	if (!remoteUserId || userId > remoteUserId) {
+		console.log(`[${userId}] Не инициатор, пропускаем offer`);
 		return;
 	}
-
-	// Проверяем состояние
 	if (peerConnection.signalingState !== 'stable') {
-		console.log(`[${userId}] Ожидание стабильного состояния, текущее:`, peerConnection.signalingState);
+		console.log(`[${userId}] Состояние не stable:`, peerConnection.signalingState);
 		return;
 	}
 
 	try {
 		isOfferInProgress = true;
-		console.log(`[${userId}] Создание offer...`);
+		console.log(`[${userId}] Создание offer для ${remoteUserId}...`);
 
 		const offer = await peerConnection.createOffer({
 			offerToReceiveVideo: true,
 			offerToReceiveAudio: true,
 		});
-
 		await peerConnection.setLocalDescription(offer);
-		console.log(`[${userId}] Offer создан и установлен как local description`);
-		sendSignal('offer', { sdp: peerConnection.localDescription });
-
-		// Сбрасываем флаг через некоторое время
-		setTimeout(() => {
-			isOfferInProgress = false;
-		}, 5000);
+		sendSignalTo(remoteUserId, 'offer', { sdp: peerConnection.localDescription });
 	} catch (err) {
 		console.error(`[${userId}] Ошибка создания offer:`, err);
 		isOfferInProgress = false;
@@ -389,43 +380,41 @@ async function makeCall() {
 }
 
 async function handleSignal(signal) {
+	// Принимаем сигналы только от текущего собеседника в комнате
+	if (!remoteUserId) {
+		// Если мы ещё не знаем собеседника, запоминаем его из сигнала
+		remoteUserId = signal.from;
+		document.getElementById('remoteId').textContent = remoteUserId;
+		if (!peerConnection) createPeerConnection();
+	}
+
 	if (signal.from !== remoteUserId) return;
 
-	console.log(`[${userId}] Получен сигнал:`, signal.type);
+	console.log(`[${userId}] Получен сигнал:`, signal.type, 'от', signal.from);
 
 	try {
 		switch (signal.type) {
 			case 'offer': {
-				// Если мы получили offer, значит мы не должны создавать свой
 				isOfferInProgress = false;
 
-				if (!peerConnection) {
-					createPeerConnection();
-				}
+				if (!peerConnection) createPeerConnection();
 
-				// Обработка состояния
-				if (peerConnection.signalingState !== 'stable') {
-					if (peerConnection.signalingState === 'have-local-offer') {
-						await peerConnection.setLocalDescription({ type: 'rollback' });
-					}
+				if (peerConnection.signalingState === 'have-local-offer') {
+					await peerConnection.setLocalDescription({ type: 'rollback' });
 				}
 
 				await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data.sdp));
 				remoteDescriptionSet = true;
-
-				// Обрабатываем буфер ICE кандидатов
 				await flushIceCandidates();
 
-				console.log(`[${userId}] Создание answer...`);
 				const answer = await peerConnection.createAnswer();
 				await peerConnection.setLocalDescription(answer);
-				sendSignal('answer', { sdp: peerConnection.localDescription });
+				sendSignalTo(remoteUserId, 'answer', { sdp: peerConnection.localDescription });
 				break;
 			}
 
 			case 'answer': {
 				isOfferInProgress = false;
-
 				if (peerConnection.signalingState === 'have-local-offer') {
 					await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data.sdp));
 					remoteDescriptionSet = true;
@@ -465,17 +454,12 @@ async function handleSignal(signal) {
 
 			case 'ready': {
 				console.log(`[${userId}] Получен ready от ${signal.from}`);
-
-				if (!peerConnection) {
-					createPeerConnection();
-				}
+				if (!peerConnection) createPeerConnection();
 
 				if (userId < remoteUserId && !isOfferInProgress) {
 					setTimeout(() => {
-						if (peerConnection?.signalingState === 'stable') {
-							makeCall();
-						}
-					}, 1000);
+						if (peerConnection?.signalingState === 'stable') makeCall();
+					}, 500);
 				}
 				break;
 			}
@@ -488,7 +472,6 @@ async function handleSignal(signal) {
 async function flushIceCandidates() {
 	const buffer = [...iceCandidateBuffer];
 	iceCandidateBuffer = [];
-
 	for (const candidate of buffer) {
 		try {
 			await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -498,19 +481,13 @@ async function flushIceCandidates() {
 	}
 }
 
-function sendSignal(type, data) {
-	// Для offer проверяем, что мы действительно должны его отправлять
-	if (type === 'offer' && userId > remoteUserId) {
-		console.warn(`[${userId}] Попытка отправить offer, хотя мы не инициатор`);
-		return;
-	}
-
-	if (stompClient?.connected) {
-		console.log(`[${userId}] Отправка сигнала:`, type);
-		stompClient.send('/app/signal', {}, JSON.stringify({
-			type, from: userId, to: remoteUserId, data
-		}));
-	}
+// Отправка WebRTC-сигнала конкретному пользователю через его личный топик
+function sendSignalTo(targetUserId, type, data) {
+	if (!stompClient?.connected) return;
+	console.log(`[${userId}] Отправка сигнала ${type} → ${targetUserId}`);
+	stompClient.send('/app/signal', {}, JSON.stringify({
+		type, from: userId, to: targetUserId, data
+	}));
 }
 
 function toggleVideo() {
@@ -592,7 +569,7 @@ async function startScreenShare() {
 		document.getElementById('screenShareBtn').classList.add('btn-control--active');
 		document.getElementById('screenIndicator').classList.remove('tile-badge--hidden');
 
-		sendSignal('screen-share-start', {});
+		if (remoteUserId) sendSignalTo(remoteUserId, 'screen-share-start', {});
 		showNotification('Демонстрация экрана начата', 'success');
 	} catch (err) {
 		isScreenSharing = false;
@@ -623,7 +600,7 @@ async function stopScreenShare() {
 	document.getElementById('screenShareBtn').classList.remove('btn-control--active');
 	document.getElementById('screenIndicator').classList.add('tile-badge--hidden');
 
-	sendSignal('screen-share-stop', {});
+	if (remoteUserId) sendSignalTo(remoteUserId, 'screen-share-stop', {});
 	showNotification('Демонстрация экрана завершена', 'info');
 }
 
@@ -632,7 +609,7 @@ function sendMessage() {
 	const text = input.value.trim();
 	if (!text) return;
 	displayMessage('me', text, 'Я');
-	sendSignal('chat', { text, senderName: userId });
+	if (remoteUserId) sendSignalTo(remoteUserId, 'chat', { text, senderName: userId });
 	input.value = '';
 }
 
@@ -642,10 +619,10 @@ function displayMessage(type, text, name) {
 	div.className = `message ${type === 'me' ? 'my-message' : 'remote-message'}`;
 	const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 	div.innerHTML = `
-        <div class="sender">${escapeHtml(name || type)}</div>
-        <div class="text">${escapeHtml(text)}</div>
-        <div class="time">${time}</div>
-    `;
+		<div class="sender">${escapeHtml(name || type)}</div>
+		<div class="text">${escapeHtml(text)}</div>
+		<div class="time">${time}</div>
+	`;
 	container.appendChild(div);
 	container.scrollTop = container.scrollHeight;
 }
@@ -661,7 +638,7 @@ function escapeHtml(str) {
 function endCall() {
 	if (stompClient?.connected) {
 		stompClient.send('/app/leave', {}, JSON.stringify({
-			type: 'leave', from: userId, to: 'all', data: null
+			type: 'leave', from: userId, to: roomId, data: null
 		}));
 		stompClient.disconnect();
 	}
@@ -670,10 +647,10 @@ function endCall() {
 	localStream?.getTracks().forEach(t => t.stop());
 	screenStream?.getTracks().forEach(t => t.stop());
 
-	// Сбрасываем все флаги
 	peerConnection = null;
 	localStream = null;
 	screenStream = null;
+	remoteUserId = null;
 	isScreenSharing = false;
 	isVideoEnabled = true;
 	isAudioEnabled = true;
@@ -692,6 +669,7 @@ function endCall() {
 	document.getElementById('remoteVideo').srcObject = null;
 	document.getElementById('localVideo').srcObject = null;
 	document.getElementById('messages').innerHTML = '';
+	document.getElementById('remoteId').textContent = '—';
 
 	showNotification('Конференция завершена', 'info');
 }
@@ -699,7 +677,7 @@ function endCall() {
 window.addEventListener('beforeunload', () => {
 	if (stompClient?.connected) {
 		stompClient.send('/app/leave', {}, JSON.stringify({
-			type: 'leave', from: userId, to: 'all', data: null
+			type: 'leave', from: userId, to: roomId, data: null
 		}));
 	}
 	localStream?.getTracks().forEach(t => t.stop());
